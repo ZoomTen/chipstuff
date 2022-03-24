@@ -8,7 +8,7 @@ import io
 import struct
 from enum import Enum
 
-FUR_STRING = b"-Furnace module-" # OwO?
+FUR_STRING = b"-Furnace module-"
 
 def read_as(format, file):
     """
