@@ -15,7 +15,7 @@ def read_as(format, file):
     Frontend to struct.unpack with automatic size inference.
     Always operates in little-endian.
 
-    Passing `format=string` will make it read a single null-terminated string
+    Passing `format="string"` will make it read a single null-terminated string
     from the file's current position.
     """
     if format == "string":
@@ -49,7 +49,67 @@ def read_as_single(format, file):
     """
     return read_as(format, file)[0]
 
-class FurnaceChip(Enum):
+class EnumShowNameOnly(Enum):
+    """
+    Just an Enum, except if you `print` 'em it'll just show the
+    name of the enum and not also its class.
+    """
+    def __repr__(self):
+        return self.name
+
+class FurnaceNote(EnumShowNameOnly):
+    """
+    All notes registered in Furnace
+    """
+    __  = 0
+    Cs  = 1
+    D_  = 2
+    Ds  = 3
+    E_  = 4
+    F_  = 5
+    Fs  = 6
+    G_  = 7
+    Gs  = 8
+    A_  = 9
+    As  = 10
+    B_  = 11
+    C_  = 12
+    OFF     = 100
+    OFF_REL = 101
+    REL     = 102
+
+class FurnaceInstrumentType(EnumShowNameOnly):
+    """
+    Instrument types currently available as of dev70
+    """
+    STANDARD    = 0
+    FM_4OP      = 1
+    GB          = 2
+    C64         = 3
+    AMIGA       = 4
+    PCE         = 5
+    SSG         = 6
+    AY8930      = 7
+    TIA         = 8
+    SAA1099     = 9
+    VIC         = 10
+    PET         = 11
+    VRC6        = 12
+    FM_OPLL     = 13
+    FM_OPL      = 14
+    FDS         = 15
+    VB          = 16
+    N163        = 17
+    KONAMI_SCC  = 18
+    FM_OPZ      = 19
+    POKEY       = 20
+    PC_BEEPER   = 21
+    WONDERSWAN  = 22
+    LYNX        = 23
+    VERA        = 24
+    X1010       = 25
+
+class FurnaceChip(EnumShowNameOnly):
     """
     FurnaceTracker planned and implemented chip database.
     Contains console name, ID and number of channels.
@@ -124,13 +184,39 @@ class FurnaceChip(Enum):
         member.channels = channels
         return member
 
-    def __repr__(self):
-        return self.name
-
 class FurnaceModule:
     """
     A representation of a FurnaceTracker module is contained
     within an instance's `module` variable.
+
+    Its' deserialized data consists of keys as follows:
+
+    `chips`
+    -------
+    Information about the soundchips that this module uses.
+    Contained within:
+        * `list` - A `list` containing the chip IDs (`FurnaceChip` enum)
+        * `panning` - A `list` containing the panning information for each chip.
+        * `settings` - Currently a binary blob `list` containing sound chip settings.
+        * `volumes` - A `list` containing the volume information for each chip.
+
+    `compatFlags`
+    -------------
+    Currently a binary blob `list` detailing which compatibility flags are set.
+
+    `info`
+    ------
+    General module information. Contained within:
+        * `channelNames` - A `list` of strings. Corresponds to channel order.
+        * `channelAbbreviations` - A `list` of strings. Corresponds to channel order.
+        * `channelsCollapsed` - A `list` of booleans. Corresponds to channel order.
+        * `channelsShown` - A `list` of booleans. Corresponds to channel order.
+        * `effectColumns` - A `list` of integers. Corresponds to channel order.
+        * `masterVolume` - Available in later Furnace builds. 2.0 by default.
+        * `patternLength`
+        * `tuning`
+
+    (TODO: cover the rest of the keys...)
     """
 
     def __init__(self, file_name=None, stream=None):
@@ -149,7 +235,7 @@ class FurnaceModule:
             "wavetables": [],
             "chips": {},
             "info": {
-                "masterVolume": 2.0
+                "masterVolume": 2.0 # defaulting
             }
         }
 
@@ -349,10 +435,24 @@ class FurnaceModule:
             extendedCompat += stream.read(3)
 
     def __read_instruments(self, stream):
-        # TODO
+        # TODO: complete this
         print("TODO: instrument pointers ->", end=" ")
         for i in self.__loc_instruments:
             print("$%04x" % i, end=" ")
+            stream.seek(i)
+
+            new_inst = {}
+            if stream.read(4) != b"INST":
+                raise Exception("Not an instrument?")
+
+            stream.read(4) # reserved
+            new_inst["version"] = read_as_single("H", stream)
+            new_inst["type"] = FurnaceInstrumentType(stream.read(1)[0])
+            stream.read(1) # reserved
+            new_inst["name"] = read_as("string", stream)
+            # TODO: decode instrument data
+
+            self.module["instruments"].append(new_inst)
         print()
 
     def __read_wavetables(self, stream):
@@ -370,10 +470,41 @@ class FurnaceModule:
         print()
 
     def __read_patterns(self, stream):
-        # TODO
-        print("TODO: pattern pointers    ->", end=" ")
         for i in self.__loc_patterns:
-            print("$%04x" % i, end=" ")
+            stream.seek(i)
+
+            new_patr = {}
+            if stream.read(4) != b"PATR":
+                raise Exception("Not a pattern?")
+
+            stream.read(4) # reserved
+            new_patr["channel"] = read_as_single("H", stream)
+            channel = new_patr["channel"]
+            new_patr["index"] = read_as_single("H", stream)
+            stream.read(4) # reserved
+            new_patr["data"] = []
+
+            effects = self.module["info"]["effectColumns"][channel]
+            pattern_length = self.module["info"]["patternLength"]
+
+            for p in range(pattern_length):
+                new_row = {}
+                new_row["note"] = read_as_single("H", stream)
+                new_row["note"] = FurnaceNote(new_row["note"])
+
+                new_row["octave"] = read_as_single("H", stream)
+                new_row["instrument"] = read_as_single("h", stream)
+
+                new_row["volume"] = read_as_single("h", stream)
+
+                new_row["effects"] = []
+                for x in range(effects):
+                    new_row["effects"].append(read_as("hh", stream))
+
+                new_patr["data"].append(new_row)
+
+            new_patr["name"] = read_as("string", stream)
+            self.module["patterns"].append(new_patr)
         print()
 
 if __name__ == "__main__":
