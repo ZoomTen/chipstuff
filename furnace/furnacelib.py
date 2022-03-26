@@ -57,6 +57,9 @@ class EnumShowNameOnly(Enum):
     def __repr__(self):
         return self.name
 
+    def __str__(self):
+        return self.__repr__()
+
 class FurnaceNote(EnumShowNameOnly):
     """
     All notes registered in Furnace
@@ -435,32 +438,18 @@ class FurnaceModule:
             extendedCompat += stream.read(3)
 
     def __read_instruments(self, stream):
-        # TODO: complete this
-        print("TODO: instrument pointers ->", end=" ")
         for i in self.__loc_instruments:
-            print("$%04x" % i, end=" ")
             stream.seek(i)
-
-            new_inst = {}
-            if stream.read(4) != b"INST":
-                raise Exception("Not an instrument?")
-
-            stream.read(4) # reserved
-            new_inst["version"] = read_as_single("H", stream)
-            new_inst["type"] = FurnaceInstrumentType(stream.read(1)[0])
-            stream.read(1) # reserved
-            new_inst["name"] = read_as("string", stream)
-            # TODO: decode instrument data
-
-            self.module["instruments"].append(new_inst)
-        print()
+            self.module["instruments"].append(
+                FurnaceInstrument(stream=stream)
+            )
 
     def __read_wavetables(self, stream):
-        # TODO
-        print("TODO: wavetable pointers  ->", end=" ")
         for i in self.__loc_waves:
-            print("$%04x" % i, end=" ")
-        print()
+            stream.seek(i)
+            self.module["wavetables"].append(
+                FurnaceWavetable(stream=stream)
+            )
 
     def __read_samples(self, stream):
         # TODO
@@ -507,10 +496,190 @@ class FurnaceModule:
             self.module["patterns"].append(new_patr)
         print()
 
+    def __repr__(self):
+        return "<Furnace module '%s' by %s>" % (
+            self.module["meta"]["name"], self.module["meta"]["author"]
+        )
+
+class FurnaceInstrument:
+    # TODO: make it read .fui files
+    def __init__(self, file_name=None, stream=None):
+        self.instrument = {
+            "data": {}
+        }
+
+        # these are only used in the loading routines
+        self.__version = None
+
+        if type(file_name) is str:
+            self.load_from_file(file_name)
+        elif stream is not None:
+            self.load_from_stream(stream)
+
+    def load_from_file(self, file_name):
+        pass
+
+    def load_from_bytes(self, bytes):
+        pass
+
+    def load_from_stream(self, stream):
+        self.__read_header(stream)
+        self.__read_fm(stream)
+        self.__read_gameboy(stream)
+        self.__read_c64(stream)
+        self.__read_amiga(stream)
+        self.__read_standard(stream)
+        # TODO: complete this
+        print("TODO: current position in file: $%x" % stream.tell())
+
+    def __read_header(self, stream):
+        if stream.read(4) != b"INST":
+            raise Exception("Not an instrument?")
+
+        stream.read(4) # reserved
+        self.instrument["version"] = read_as_single("H", stream)
+        self.__version = self.instrument["version"]
+        self.instrument["type"] = FurnaceInstrumentType(stream.read(1)[0])
+        stream.read(1) # reserved
+        self.instrument["name"] = read_as("string", stream)
+
+    def __read_fm(self, stream):
+        self.instrument["data"]["fm"] = {}
+        self.instrument["data"]["fm"]["alg"] = read_as_single("B", stream)
+        self.instrument["data"]["fm"]["feedback"] = read_as_single("B", stream)
+        self.instrument["data"]["fm"]["fms"] = read_as_single("B", stream)
+        self.instrument["data"]["fm"]["ams"] = read_as_single("B", stream)
+        self.instrument["data"]["fm"]["opCount"] = read_as_single("B", stream)
+        if self.__version >= 60:
+            self.instrument["data"]["fm"]["opll"] = read_as_single("B", stream)
+        else:
+            stream.read(1) # reserved
+        stream.read(2) # reserved
+
+        self.instrument["data"]["fm"]["ops"] = []
+        for op in range(4):
+            new_op = {}
+            new_op["am"]        = read_as_single("B", stream)
+            new_op["ar"]        = read_as_single("B", stream)
+            new_op["dr"]        = read_as_single("B", stream)
+            new_op["mult"]      = read_as_single("B", stream)
+            new_op["rr"]        = read_as_single("B", stream)
+            new_op["sl"]        = read_as_single("B", stream)
+            new_op["tl"]        = read_as_single("B", stream)
+            new_op["dt2"]       = read_as_single("B", stream)
+            new_op["rs"]        = read_as_single("B", stream)
+            new_op["dt"]        = read_as_single("B", stream)
+            new_op["d2r"]       = read_as_single("B", stream)
+            new_op["ssgEnv"]    = read_as_single("B", stream)
+            new_op["dam"]       = read_as_single("B", stream)
+            new_op["dvb"]       = read_as_single("B", stream)
+            new_op["egt"]       = read_as_single("B", stream)
+            new_op["ksl"]       = read_as_single("B", stream)
+            new_op["sus"]       = read_as_single("B", stream)
+            new_op["vib"]       = read_as_single("B", stream)
+            new_op["ws"]        = read_as_single("B", stream)
+            new_op["ksr"]       = read_as_single("B", stream)
+            stream.read(12) # reserved
+
+            self.instrument["data"]["fm"]["ops"].append(new_op)
+
+    def __read_gameboy(self, stream):
+        self.instrument["data"]["gameboy"] = {}
+        self.instrument["data"]["gameboy"]["volume"]       = read_as_single("B", stream)
+        self.instrument["data"]["gameboy"]["direction"]    = read_as_single("B", stream)
+        self.instrument["data"]["gameboy"]["length"]       = read_as_single("B", stream)
+        self.instrument["data"]["gameboy"]["soundLength"]  = read_as_single("B", stream)
+
+    def __read_c64(self, stream):
+        self.instrument["data"]["c64"] = {}
+        self.instrument["data"]["c64"]["triangle"]         = read_as_single("B", stream)
+        self.instrument["data"]["c64"]["saw"]              = read_as_single("B", stream)
+        self.instrument["data"]["c64"]["pulse"]            = read_as_single("B", stream)
+        self.instrument["data"]["c64"]["noise"]            = read_as_single("B", stream)
+        self.instrument["data"]["c64"]["adsr"]             = read_as("BBBB", stream)
+        self.instrument["data"]["c64"]["duty"]             = read_as_single("H", stream)
+        self.instrument["data"]["c64"]["ringMod"]          = read_as_single("B", stream)
+        self.instrument["data"]["c64"]["oscSync"]          = read_as_single("B", stream)
+        self.instrument["data"]["c64"]["toFilter"]         = read_as_single("B", stream)
+        self.instrument["data"]["c64"]["initFilter"]       = read_as_single("B", stream)
+        self.instrument["data"]["c64"]["volMacroAsCutoff"] = read_as_single("B", stream)
+        self.instrument["data"]["c64"]["resonance"]        = read_as_single("B", stream)
+        self.instrument["data"]["c64"]["lowPass"]          = read_as_single("B", stream)
+        self.instrument["data"]["c64"]["bandPass"]         = read_as_single("B", stream)
+        self.instrument["data"]["c64"]["highPass"]         = read_as_single("B", stream)
+        self.instrument["data"]["c64"]["ch3Off"]           = read_as_single("B", stream)
+        self.instrument["data"]["c64"]["cutoff"]           = read_as_single("H", stream)
+        self.instrument["data"]["c64"]["absDutyMacro"]     = read_as_single("B", stream)
+        self.instrument["data"]["c64"]["absFilterMacro"]   = read_as_single("B", stream)
+
+    def __read_amiga(self, stream):
+        self.instrument["data"]["amiga"] = {}
+        self.instrument["data"]["amiga"]["sampleId"] = read_as_single("H", stream)
+        stream.read(14) # reserved
+
+    def __read_standard(self, stream):
+        # TODO: complete this
+        self.instrument["data"]["standard"] = {}
+        std_macro_lengths = {
+            "volume": read_as_single("I", stream),
+            "arp": read_as_single("I", stream),
+            "duty": read_as_single("I", stream),
+            "wave": read_as_single("I", stream),
+        }
+        if self.__version >= 17:
+            std_macro_lengths["pitch"] = read_as_single("I", stream)
+            std_macro_lengths["x1"]    = read_as_single("I", stream)
+            std_macro_lengths["x2"]    = read_as_single("I", stream)
+            std_macro_lengths["x3"]    = read_as_single("I", stream)
+
+    def __repr__(self):
+        return "<Furnace %s instrument '%s'>" % (
+            self.instrument["type"], self.instrument["name"])
+
+class FurnaceWavetable:
+    # TODO: make it read .fuw files
+    def __init__(self, file_name=None, stream=None):
+        self.wavetable = {
+            "data": [],
+            "range": (-1, -1),
+        }
+
+        if type(file_name) is str:
+            self.load_from_file(file_name)
+        elif stream is not None:
+            self.load_from_stream(stream)
+
+    def load_from_file(self, file_name):
+        pass
+
+    def load_from_bytes(self, bytes):
+        pass
+
+    def load_from_stream(self, stream):
+        self.__read_header(stream)
+        self.__read_wave(stream)
+
+    def __read_header(self, stream):
+        if stream.read(4) != b"WAVE":
+            raise Exception("Not a wavetable?")
+        stream.read(4) # reserved
+        self.wavetable["name"] = read_as("string", stream)
+
+    def __read_wave(self, stream):
+        wave_size = read_as_single("I", stream)
+        self.wavetable["range"] = read_as("II", stream)
+        for i in range(wave_size):
+            # some values can extend beyond the range so clip it manually
+            # if you need to
+            self.wavetable["data"].append( read_as_single("I", stream) )
+
+    def __repr__(self):
+        return "<Furnace wavetable '%s'>" % ( self.wavetable["name"] )
+
 if __name__ == "__main__":
     import sys
     import pprint
     pp = pprint.PrettyPrinter(4)
 
     module = FurnaceModule(file_name=sys.argv[1])
-    pp.pprint(module.module)
+    print(module.module["instruments"][0].instrument)
