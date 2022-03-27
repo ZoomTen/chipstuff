@@ -6,7 +6,8 @@ This is a library for viewing and manipulating FurnaceTracker .fur files.
 import zlib
 import io
 import struct
-from enum import Enum
+
+from furnacetypes import FurnaceNote, FurnaceInstrumentType, FurnaceChip
 
 FUR_STRING = b"-Furnace module-"
 
@@ -49,150 +50,12 @@ def read_as_single(format, file):
     """
     return read_as(format, file)[0]
 
-class EnumShowNameOnly(Enum):
-    """
-    Just an Enum, except if you `print` 'em it'll just show the
-    name of the enum and not also its class.
-    """
-    def __repr__(self):
-        return self.name
-
-    def __str__(self):
-        return self.__repr__()
-
-class FurnaceNote(EnumShowNameOnly):
-    """
-    All notes registered in Furnace
-    """
-    __  = 0
-    Cs  = 1
-    D_  = 2
-    Ds  = 3
-    E_  = 4
-    F_  = 5
-    Fs  = 6
-    G_  = 7
-    Gs  = 8
-    A_  = 9
-    As  = 10
-    B_  = 11
-    C_  = 12
-    OFF     = 100
-    OFF_REL = 101
-    REL     = 102
-
-class FurnaceInstrumentType(EnumShowNameOnly):
-    """
-    Instrument types currently available as of dev70
-    """
-    STANDARD    = 0
-    FM_4OP      = 1
-    GB          = 2
-    C64         = 3
-    AMIGA       = 4
-    PCE         = 5
-    SSG         = 6
-    AY8930      = 7
-    TIA         = 8
-    SAA1099     = 9
-    VIC         = 10
-    PET         = 11
-    VRC6        = 12
-    FM_OPLL     = 13
-    FM_OPL      = 14
-    FDS         = 15
-    VB          = 16
-    N163        = 17
-    KONAMI_SCC  = 18
-    FM_OPZ      = 19
-    POKEY       = 20
-    PC_BEEPER   = 21
-    WONDERSWAN  = 22
-    LYNX        = 23
-    VERA        = 24
-    X1010       = 25
-
-class FurnaceChip(EnumShowNameOnly):
-    """
-    FurnaceTracker planned and implemented chip database.
-    Contains console name, ID and number of channels.
-    """
-    YMU759            = (0x01, 17)
-    GENESIS           = (0x02, 10) # YM2612 + SN76489
-    SMS               = (0x03,  4) # SN76489
-    GB                = (0x04,  4) # LR53902
-    PCE               = (0x05,  6) # HuC6280
-    NES               = (0x06,  5) # RP2A03
-    C64_8580          = (0x07,  4) # SID r8580
-    SEGA_ARCADE       = (0x08, 13) # YM2151 + SegaPCM
-    NEO_GEO_CD        = (0x09, 13)
-    GENESIS_EX        = (0x42, 13) # YM2612 + SN76489
-    SMS_JP            = (0x43, 13) # SN76489 + YM2413
-    NES_VRC7          = (0x46, 11) # RP2A03 + YM2413
-    C64_6581          = (0x47,  3) # SID r6581
-    NEO_GEO_CD_EX     = (0x49, 16)
-    AY38910           = (0x80,  3)
-    AMIGA             = (0x81,  4) # Paula
-    YM2151            = (0x82,  8)
-    YM2612            = (0x83,  6)
-    TIA               = (0x84,  2)
-    VIC20             = (0x85,  4)
-    PET               = (0x86,  1)
-    SNES              = (0x87,  8) # SPC700
-    VRC6              = (0x88,  3)
-    OPLL              = (0x89,  9) # YM2413
-    FDS               = (0x8a,  1)
-    MMC5              = (0x8b,  3)
-    N163              = (0x8c,  8)
-    OPN               = (0x8d,  6) # YM2203
-    PC98              = (0x8e, 16) # YM2608
-    OPL               = (0x8f,  9) # YM3526
-    OPL2              = (0x90,  9) # YM3812
-    OPL3              = (0x91, 18) # YMF262
-    MULTIPCM          = (0x92, 24)
-    PC_SPEAKER        = (0x93,  1) # Intel 8253
-    POKEY             = (0x94,  4)
-    RF5C68            = (0x95,  8)
-    WONDERSWAN        = (0x96,  4)
-    SAA1099           = (0x97,  6)
-    OPZ               = (0x98,  8)
-    POKEMON_MINI      = (0x99,  1)
-    AY8930            = (0x9a,  3)
-    SEGAPCM           = (0x9b, 16)
-    VIRTUAL_BOY       = (0x9c,  6)
-    VRC7              = (0x9d,  6)
-    YM2610B           = (0x9e, 16)
-    ZX_BEEPER         = (0x9f,  6)
-    YM2612_EX         = (0xa0,  9)
-    SCC               = (0xa1,  5)
-    OPL_DRUMS         = (0xa2, 11)
-    OPL2_DRUMS        = (0xa3, 11)
-    OPL3_DRUMS        = (0xa4, 20)
-    NEO_GEO           = (0xa5, 14)
-    NEO_GEO_EX        = (0xa6, 17)
-    OPLL_DRUMS        = (0xa7, 11)
-    LYNX              = (0xa8,  4)
-    SEGAPCM_DMF       = (0xa9,  5)
-    MSM6295           = (0xaa,  4)
-    MSM6258           = (0xab,  1)
-    COMMANDER_X16     = (0xac, 17)
-    BUBBLE_SYSTEM_WSG = (0xad,  2)
-    SETA              = (0xae, 16)
-    YM2610B_EX        = (0xaf, 19)
-    QSOUND            = (0xe0, 19)
-
-    def __new__(cls, id, channels):
-        member = object.__new__(cls)
-        member._value_ = id
-        member.channels = channels
-        return member
-
 class FurnaceModule:
     """
     A representation of a FurnaceTracker module is contained
     within an instance's `module` variable.
 
-    Its' deserialized data consists of keys as follows:
+    List of attributes:
 
     `chips`
     -------
@@ -219,28 +82,50 @@ class FurnaceModule:
         * `patternLength`
         * `tuning`
 
-    (TODO: cover the rest of the keys...)
+    `instruments`
+    -------------
+    TODO
+
+    `meta`
+    ------
+    TODO
+
+    `order`
+    -------
+    TODO
+
+    `patterns`
+    ----------
+    TODO
+
+    `timing`
+    --------
+    TODO
+
+    `wavetables`
+    ------------
+    TODO
     """
 
-    def __init__(self, file_name=None, stream=None):
+    def __init__(self, new_module=False, file_name=None, stream=None):
         """
         Initializes either an "empty" FurnaceTracker module, or, if
         supplied either a file name or a stream, deserializes a FurnaceTracker
         module from that.
         """
         self.file_name = None
-        self.module = {
-            "meta": {},
-            "timing": {},
-            "order": [],
-            "patterns": [],
-            "instruments": [],
-            "wavetables": [],
-            "chips": {},
-            "info": {
-                "masterVolume": 2.0 # defaulting
-            }
-        }
+
+        # initialize as if we just started a new module
+
+        self.meta = {}
+        self.timing = {}
+        self.order = {}
+        self.chips = {}
+        self.info = {}
+        self.compatFlags = []
+        self.patterns = []
+        self.instruments = []
+        self.wavetables = []
 
         # these are only used in the loading routines
         self.__version = None
@@ -305,14 +190,77 @@ class FurnaceModule:
         self.__read_wavetables(stream)
         self.__read_samples(stream)
         self.__read_patterns(stream)
-        print("TODO: current position in file: $%x" % stream.tell())
+        #print("TODO: current position in file: $%x" % stream.tell())
+
+    def make_new(self):
+        """
+        Create a minimal FurnaceTracker module.
+        """
+        self.meta = {
+            "author": "",
+            "comment": "",
+            "name": "",
+            "version": 70
+        }
+        self.timing = {
+            "arpSpeed": 1,
+            "clockSpeed": 60.0,
+            "highlight": (4, 16),
+            "speed": (6, 6),
+            "timebase": 0
+        }
+        self.order = {
+            0: [0],
+            1: [0],
+            2: [0],
+            3: [0]
+        }
+        self.chips = {
+            "panning": [0 for x in range(32)],
+            "volume": [1.0 for x in range(32)],
+            "settings": [b"\x00\x00\x00\x00" for x in range(32)],
+            "list": [FurnaceChip.GB]
+        }
+        self.info = {
+            "channelAbbreviations": ['' for x in range(4)],
+            "channelNames": ['' for x in range(4)],
+            "channelsCollapsed": [False for x in range(4)],
+            "channelsShown": [True for x in range(4)],
+            "effectColumns": [1 for x in range(4)],
+            "masterVolume": 1.0,
+            "patternLength": 1,
+            "tuning": 440.0
+        }
+        self.compatFlags = [
+            b"\x00\x01\x00\x00\x00\x00\x00\x00\x01\x01\x00\x00\x00\x00\x00\x00",
+            b"\x00\x00\x01\x01"
+        ]
+        self.patterns = []
+        for i in range(4):
+            self.patterns.append({
+                "channel":i,
+                "index":0,
+                "name":"",
+                "data":[
+                    {
+                        "effects":[(-1,-1)],
+                        "instrument":-1,
+                        "note":FurnaceNote.__,
+                        "octave":0,
+                        "volume":-1
+                    }
+                ]
+            })
+        self.instruments = []
+        self.wavetables = []
+        self.samples = []
 
     def __read_header(self, stream):
         if stream.read(16) != FUR_STRING:
             raise Exception("Invalid Furnace module (magic number invalid)")
         # read version number
-        self.module["meta"]["version"] = read_as_single("H", stream)
-        self.__version = self.module["meta"]["version"]
+        self.meta["version"] = read_as_single("H", stream)
+        self.__version = self.meta["version"]
         stream.read(2) # XXX reserved
         self.__song_info_ptr = read_as_single("I", stream)
         stream.read(8) # XXX reserved
@@ -325,18 +273,18 @@ class FurnaceModule:
         stream.read(4) # XXX reserved
 
         # timing info
-        self.module["timing"]["timebase"] = read_as_single("B", stream) # 0-indexed
-        self.module["timing"]["speed"] = read_as("BB", stream)
-        self.module["timing"]["arpSpeed"] = read_as_single("B", stream)
-        self.module["timing"]["clockSpeed"] = read_as_single("f", stream)
+        self.timing["timebase"] = read_as_single("B", stream) # 0-indexed
+        self.timing["speed"] = read_as("BB", stream)
+        self.timing["arpSpeed"] = read_as_single("B", stream)
+        self.timing["clockSpeed"] = read_as_single("f", stream)
 
         # length of patterns
-        self.module["info"]["patternLength"] = read_as_single("H", stream)
-        self.__len_patterns = self.module["info"]["patternLength"]
+        self.info["patternLength"] = read_as_single("H", stream)
+        self.__len_patterns = self.info["patternLength"]
         len_orders = read_as_single("H", stream)
 
         # highlights
-        self.module["timing"]["highlight"] = read_as("BB", stream)
+        self.timing["highlight"] = read_as("BB", stream)
 
         num_instruments = read_as_single("H", stream)
         num_waves = read_as_single("H", stream)
@@ -344,35 +292,35 @@ class FurnaceModule:
         num_patterns = read_as_single("I", stream)
 
         # chip settings
-        self.module["chips"]["list"] = []
-        self.module["chips"]["volumes"] = []
-        self.module["chips"]["panning"] = []
-        self.module["chips"]["settings"] = []
+        self.chips["list"] = []
+        self.chips["volumes"] = []
+        self.chips["panning"] = []
+        self.chips["settings"] = []
         # soundchip list
         for chip_id in stream.read(32):
             if chip_id == 0:
                 break;
             try:
-                self.module["chips"]["list"].append( FurnaceChip(chip_id) )
+                self.chips["list"].append( FurnaceChip(chip_id) )
             except ValueError:
                 pass
 
         for i in range(32):
-            self.module["chips"]["volumes"].append( read_as_single("b", stream) / 64 )
+            self.chips["volumes"].append( read_as_single("b", stream) / 64 )
 
         for i in range(32):
-            self.module["chips"]["panning"].append( read_as_single("b", stream) )
+            self.chips["panning"].append( read_as_single("b", stream) )
 
         for i in range(32):
-            self.module["chips"]["settings"].append( stream.read(4) )
+            self.chips["settings"].append( stream.read(4) )
 
         # fill in metadata
-        self.module["meta"]["name"] = read_as("string", stream)
-        self.module["meta"]["author"] = read_as("string", stream)
-        self.module["info"]["tuning"] = read_as_single("f", stream)
+        self.meta["name"] = read_as("string", stream)
+        self.meta["author"] = read_as("string", stream)
+        self.info["tuning"] = read_as_single("f", stream)
 
         # compat flags are blobs for now
-        self.module["compatFlags"] = [stream.read(20)]
+        self.compatFlags = [stream.read(20)]
 
         self.__loc_instruments = [read_as_single("I", stream) for i in range(num_instruments)]
         self.__loc_waves = [read_as_single("I", stream) for i in range(num_waves)]
@@ -381,55 +329,55 @@ class FurnaceModule:
 
         # how many channels are there in total?
         num_channels = 0
-        for chip in self.module["chips"]["list"]:
+        for chip in self.chips["list"]:
             num_channels += chip.channels
 
         # load orders
-        self.module["order"] = {}
+        self.order = {}
         for channel in range(num_channels):
-            self.module["order"][channel] = []
+            self.order[channel] = []
             for order in range(len_orders):
-                self.module["order"][channel].append(read_as_single("B", stream))
+                self.order[channel].append(read_as_single("B", stream))
 
         # load channel settings
-        self.module["info"]["effectColumns"] = []
-        self.module["info"]["channelsShown"] = []
-        self.module["info"]["channelsCollapsed"] = []
-        self.module["info"]["channelNames"] = []
-        self.module["info"]["channelAbbreviations"] = []
+        self.info["effectColumns"] = []
+        self.info["channelsShown"] = []
+        self.info["channelsCollapsed"] = []
+        self.info["channelNames"] = []
+        self.info["channelAbbreviations"] = []
 
         # number of FX columns
         for channel in range(num_channels):
-            self.module["info"]["effectColumns"].append(read_as_single("B", stream))
+            self.info["effectColumns"].append(read_as_single("B", stream))
 
         # channels shown
         for channel in range(num_channels):
             status = read_as_single("B", stream)
             if status:
-                self.module["info"]["channelsShown"].append(True)
+                self.info["channelsShown"].append(True)
             else:
-                self.module["info"]["channelsShown"].append(False)
+                self.info["channelsShown"].append(False)
 
         # channels collapsed
         for channel in range(num_channels):
             status = read_as_single("B", stream)
             if status:
-                self.module["info"]["channelsCollapsed"].append(True)
+                self.info["channelsCollapsed"].append(True)
             else:
-                self.module["info"]["channelsCollapsed"].append(False)
+                self.info["channelsCollapsed"].append(False)
 
         # channel names shown in frame window
         for channel in range(num_channels):
-            self.module["info"]["channelNames"].append(read_as("string", stream))
+            self.info["channelNames"].append(read_as("string", stream))
 
         # channel names shown in order window
         for channel in range(num_channels):
-            self.module["info"]["channelAbbreviations"].append(read_as("string", stream))
+            self.info["channelAbbreviations"].append(read_as("string", stream))
 
-        self.module["meta"]["comment"] = read_as("string", stream)
+        self.meta["comment"] = read_as("string", stream)
 
         if (self.__version >= 59):
-            self.module["info"]["masterVolume"] = read_as_single("f", stream)
+            self.info["masterVolume"] = read_as_single("f", stream)
 
         extendedCompat = b''
         if (self.__version >= 70):
@@ -440,23 +388,24 @@ class FurnaceModule:
     def __read_instruments(self, stream):
         for i in self.__loc_instruments:
             stream.seek(i)
-            self.module["instruments"].append(
+            self.instruments.append(
                 FurnaceInstrument(stream=stream)
             )
 
     def __read_wavetables(self, stream):
         for i in self.__loc_waves:
             stream.seek(i)
-            self.module["wavetables"].append(
+            self.wavetables.append(
                 FurnaceWavetable(stream=stream)
             )
 
     def __read_samples(self, stream):
         # TODO
-        print("TODO: sample pointers     ->", end=" ")
-        for i in self.__loc_samples:
-            print("$%04x" % i, end=" ")
-        print()
+        #print("TODO: sample pointers     ->", end=" ")
+        #for i in self.__loc_samples:
+            #print("$%04x" % i, end=" ")
+        #print()
+        pass
 
     def __read_patterns(self, stream):
         for i in self.__loc_patterns:
@@ -473,8 +422,8 @@ class FurnaceModule:
             stream.read(4) # reserved
             new_patr["data"] = []
 
-            effects = self.module["info"]["effectColumns"][channel]
-            pattern_length = self.module["info"]["patternLength"]
+            effects = self.info["effectColumns"][channel]
+            pattern_length = self.info["patternLength"]
 
             for p in range(pattern_length):
                 new_row = {}
@@ -493,23 +442,20 @@ class FurnaceModule:
                 new_patr["data"].append(new_row)
 
             new_patr["name"] = read_as("string", stream)
-            self.module["patterns"].append(new_patr)
-        print()
+            self.patterns.append(new_patr)
 
     def __repr__(self):
         return "<Furnace module '%s' by %s>" % (
-            self.module["meta"]["name"], self.module["meta"]["author"]
+            self.meta["name"], self.meta["author"]
         )
 
 class FurnaceInstrument:
     # TODO: make it read .fui files
     def __init__(self, file_name=None, stream=None):
-        self.instrument = {
-            "data": {}
-        }
-
-        # these are only used in the loading routines
-        self.__version = None
+        self.data = {}
+        self.version = None
+        self.type = None
+        self.name = None
 
         if type(file_name) is str:
             self.load_from_file(file_name)
@@ -530,33 +476,32 @@ class FurnaceInstrument:
         self.__read_amiga(stream)
         self.__read_standard(stream)
         # TODO: complete this
-        print("TODO: current position in file: $%x" % stream.tell())
+        #print("TODO: current position in file: $%x" % stream.tell())
 
     def __read_header(self, stream):
         if stream.read(4) != b"INST":
             raise Exception("Not an instrument?")
 
         stream.read(4) # reserved
-        self.instrument["version"] = read_as_single("H", stream)
-        self.__version = self.instrument["version"]
-        self.instrument["type"] = FurnaceInstrumentType(stream.read(1)[0])
+        self.version = read_as_single("H", stream)
+        self.type = FurnaceInstrumentType(stream.read(1)[0])
         stream.read(1) # reserved
-        self.instrument["name"] = read_as("string", stream)
+        self.name = read_as("string", stream)
 
     def __read_fm(self, stream):
-        self.instrument["data"]["fm"] = {}
-        self.instrument["data"]["fm"]["alg"] = read_as_single("B", stream)
-        self.instrument["data"]["fm"]["feedback"] = read_as_single("B", stream)
-        self.instrument["data"]["fm"]["fms"] = read_as_single("B", stream)
-        self.instrument["data"]["fm"]["ams"] = read_as_single("B", stream)
-        self.instrument["data"]["fm"]["opCount"] = read_as_single("B", stream)
-        if self.__version >= 60:
-            self.instrument["data"]["fm"]["opll"] = read_as_single("B", stream)
+        self.data["fm"] = {}
+        self.data["fm"]["alg"] = read_as_single("B", stream)
+        self.data["fm"]["feedback"] = read_as_single("B", stream)
+        self.data["fm"]["fms"] = read_as_single("B", stream)
+        self.data["fm"]["ams"] = read_as_single("B", stream)
+        self.data["fm"]["opCount"] = read_as_single("B", stream)
+        if self.version >= 60:
+            self.data["fm"]["opll"] = read_as_single("B", stream)
         else:
             stream.read(1) # reserved
         stream.read(2) # reserved
 
-        self.instrument["data"]["fm"]["ops"] = []
+        self.data["fm"]["ops"] = []
         for op in range(4):
             new_op = {}
             new_op["am"]        = read_as_single("B", stream)
@@ -581,52 +526,52 @@ class FurnaceInstrument:
             new_op["ksr"]       = read_as_single("B", stream)
             stream.read(12) # reserved
 
-            self.instrument["data"]["fm"]["ops"].append(new_op)
+            self.data["fm"]["ops"].append(new_op)
 
     def __read_gameboy(self, stream):
-        self.instrument["data"]["gameboy"] = {}
-        self.instrument["data"]["gameboy"]["volume"]       = read_as_single("B", stream)
-        self.instrument["data"]["gameboy"]["direction"]    = read_as_single("B", stream)
-        self.instrument["data"]["gameboy"]["length"]       = read_as_single("B", stream)
-        self.instrument["data"]["gameboy"]["soundLength"]  = read_as_single("B", stream)
+        self.data["gameboy"] = {}
+        self.data["gameboy"]["volume"]       = read_as_single("B", stream)
+        self.data["gameboy"]["direction"]    = read_as_single("B", stream)
+        self.data["gameboy"]["length"]       = read_as_single("B", stream)
+        self.data["gameboy"]["soundLength"]  = read_as_single("B", stream)
 
     def __read_c64(self, stream):
-        self.instrument["data"]["c64"] = {}
-        self.instrument["data"]["c64"]["triangle"]         = read_as_single("B", stream)
-        self.instrument["data"]["c64"]["saw"]              = read_as_single("B", stream)
-        self.instrument["data"]["c64"]["pulse"]            = read_as_single("B", stream)
-        self.instrument["data"]["c64"]["noise"]            = read_as_single("B", stream)
-        self.instrument["data"]["c64"]["adsr"]             = read_as("BBBB", stream)
-        self.instrument["data"]["c64"]["duty"]             = read_as_single("H", stream)
-        self.instrument["data"]["c64"]["ringMod"]          = read_as_single("B", stream)
-        self.instrument["data"]["c64"]["oscSync"]          = read_as_single("B", stream)
-        self.instrument["data"]["c64"]["toFilter"]         = read_as_single("B", stream)
-        self.instrument["data"]["c64"]["initFilter"]       = read_as_single("B", stream)
-        self.instrument["data"]["c64"]["volMacroAsCutoff"] = read_as_single("B", stream)
-        self.instrument["data"]["c64"]["resonance"]        = read_as_single("B", stream)
-        self.instrument["data"]["c64"]["lowPass"]          = read_as_single("B", stream)
-        self.instrument["data"]["c64"]["bandPass"]         = read_as_single("B", stream)
-        self.instrument["data"]["c64"]["highPass"]         = read_as_single("B", stream)
-        self.instrument["data"]["c64"]["ch3Off"]           = read_as_single("B", stream)
-        self.instrument["data"]["c64"]["cutoff"]           = read_as_single("H", stream)
-        self.instrument["data"]["c64"]["absDutyMacro"]     = read_as_single("B", stream)
-        self.instrument["data"]["c64"]["absFilterMacro"]   = read_as_single("B", stream)
+        self.data["c64"] = {}
+        self.data["c64"]["triangle"]         = read_as_single("B", stream)
+        self.data["c64"]["saw"]              = read_as_single("B", stream)
+        self.data["c64"]["pulse"]            = read_as_single("B", stream)
+        self.data["c64"]["noise"]            = read_as_single("B", stream)
+        self.data["c64"]["adsr"]             = read_as("BBBB", stream)
+        self.data["c64"]["duty"]             = read_as_single("H", stream)
+        self.data["c64"]["ringMod"]          = read_as_single("B", stream)
+        self.data["c64"]["oscSync"]          = read_as_single("B", stream)
+        self.data["c64"]["toFilter"]         = read_as_single("B", stream)
+        self.data["c64"]["initFilter"]       = read_as_single("B", stream)
+        self.data["c64"]["volMacroAsCutoff"] = read_as_single("B", stream)
+        self.data["c64"]["resonance"]        = read_as_single("B", stream)
+        self.data["c64"]["lowPass"]          = read_as_single("B", stream)
+        self.data["c64"]["bandPass"]         = read_as_single("B", stream)
+        self.data["c64"]["highPass"]         = read_as_single("B", stream)
+        self.data["c64"]["ch3Off"]           = read_as_single("B", stream)
+        self.data["c64"]["cutoff"]           = read_as_single("H", stream)
+        self.data["c64"]["absDutyMacro"]     = read_as_single("B", stream)
+        self.data["c64"]["absFilterMacro"]   = read_as_single("B", stream)
 
     def __read_amiga(self, stream):
-        self.instrument["data"]["amiga"] = {}
-        self.instrument["data"]["amiga"]["sampleId"] = read_as_single("H", stream)
+        self.data["amiga"] = {}
+        self.data["amiga"]["sampleId"] = read_as_single("H", stream)
         stream.read(14) # reserved
 
     def __read_standard(self, stream):
         # TODO: complete this
-        self.instrument["data"]["standard"] = {}
+        self.data["standard"] = {}
         std_macro_lengths = {
             "volume": read_as_single("I", stream),
             "arp": read_as_single("I", stream),
             "duty": read_as_single("I", stream),
             "wave": read_as_single("I", stream),
         }
-        if self.__version >= 17:
+        if self.version >= 17:
             std_macro_lengths["pitch"] = read_as_single("I", stream)
             std_macro_lengths["x1"]    = read_as_single("I", stream)
             std_macro_lengths["x2"]    = read_as_single("I", stream)
@@ -634,15 +579,14 @@ class FurnaceInstrument:
 
     def __repr__(self):
         return "<Furnace %s instrument '%s'>" % (
-            self.instrument["type"], self.instrument["name"])
+            self.type, self.name)
 
 class FurnaceWavetable:
     # TODO: make it read .fuw files
     def __init__(self, file_name=None, stream=None):
-        self.wavetable = {
-            "data": [],
-            "range": (-1, -1),
-        }
+        self.data = []
+        self.range = (-1, -1)
+        self.name = None
 
         if type(file_name) is str:
             self.load_from_file(file_name)
@@ -663,18 +607,18 @@ class FurnaceWavetable:
         if stream.read(4) != b"WAVE":
             raise Exception("Not a wavetable?")
         stream.read(4) # reserved
-        self.wavetable["name"] = read_as("string", stream)
+        self.name = read_as("string", stream)
 
     def __read_wave(self, stream):
         wave_size = read_as_single("I", stream)
-        self.wavetable["range"] = read_as("II", stream)
+        self.range = read_as("II", stream)
         for i in range(wave_size):
             # some values can extend beyond the range so clip it manually
             # if you need to
-            self.wavetable["data"].append( read_as_single("I", stream) )
+            self.data.append( read_as_single("I", stream) )
 
     def __repr__(self):
-        return "<Furnace wavetable '%s'>" % ( self.wavetable["name"] )
+        return "<Furnace wavetable '%s'>" % ( self.name )
 
 if __name__ == "__main__":
     import sys
@@ -682,4 +626,8 @@ if __name__ == "__main__":
     pp = pprint.PrettyPrinter(4)
 
     module = FurnaceModule(file_name=sys.argv[1])
-    print(module.module["instruments"][0].instrument)
+    pp.pprint(
+        (
+            module.wavetables
+        )
+    )
