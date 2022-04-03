@@ -1,6 +1,5 @@
 import sys
-from furnacelib import FurnaceModule
-from furnacetypes import FurnaceChip, FurnaceNote
+from furnacelib import FurnaceModule, FurnaceChip, FurnaceNote
 
 bpmify = lambda timebase, speedSum, hz: (120.0 * hz) / (timebase * 4 * speedSum)
 to_tempo = lambda tempo: int(19296 / tempo)
@@ -155,6 +154,17 @@ def pattern2asm(pattern, instruments):
     return command_bin
 
 if __name__ == "__main__":
+	if len(sys.argv) == 2:
+		FILE = sys.argv[1]
+	else:
+		print("fur2pret.py [fur file] > [asm file]")
+		print()
+		print("Converts Furnace .fur modules into .asm files")
+		print("suitable for use with the GB/GBC Pokemon disassemblies")
+		print()
+		print("- Module must ONLY contain a single GB chip")
+		exit(0)
+	
     module = FurnaceModule(file_name=sys.argv[1])
 
     if module.chips["list"] != [FurnaceChip.GB]:
