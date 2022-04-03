@@ -30,14 +30,14 @@ if __name__ == "__main__":
 	STATES = []
 	INSTRUMENTS = []
 	REGISTER_STATE = {
-		0: {"alg": None, "feedback": None, "ops": {}},
-		1: {"alg": None, "feedback": None, "ops": {}},
-		2: {"alg": None, "feedback": None, "ops": {}},
-		3: {"alg": None, "feedback": None, "ops": {}},
-		4: {"alg": None, "feedback": None, "ops": {}},
-		5: {"alg": None, "feedback": None, "ops": {}},
-		6: {"alg": None, "feedback": None, "ops": {}},
-		7: {"alg": None, "feedback": None, "ops": {}},
+		0: {"alg": 0, "feedback": 0, "ops": {}},
+		1: {"alg": 0, "feedback": 0, "ops": {}},
+		2: {"alg": 0, "feedback": 0, "ops": {}},
+		3: {"alg": 0, "feedback": 0, "ops": {}},
+		4: {"alg": 0, "feedback": 0, "ops": {}},
+		5: {"alg": 0, "feedback": 0, "ops": {}},
+		6: {"alg": 0, "feedback": 0, "ops": {}},
+		7: {"alg": 0, "feedback": 0, "ops": {}},
 	}
 
 	# add operators to channels
@@ -45,17 +45,17 @@ if __name__ == "__main__":
 		new_ops = {1: None, 2: None, 3: None, 4: None}
 		for j in new_ops:
 			new_ops[j] = {
-				"dt": None,
-				"ml": None,
-				"tl": None,
-				"rs": None,
-				"a": None,
-				"am": None,
-				"d": None,
-				"dt2": None,
-				"d2": None,
-				"s": None,
-				"r": None,
+				"dt": 0,
+				"ml": 0,
+				"tl": 0,
+				"rs": 0,
+				"a": 0,
+				"am": 0,
+				"d": 0,
+				"dt2": 0,
+				"d2": 0,
+				"s": 0,
+				"r": 0,
 			}
 		REGISTER_STATE[i]["ops"] = new_ops
 
@@ -190,9 +190,6 @@ if __name__ == "__main__":
 	for state in STATES:
 		for channel in state:
 			if state[channel] in INSTRUMENTS:
-				continue
-			elif state[channel]['alg'] is None:
-				# skip empty data
 				continue
 			else:
 				INSTRUMENTS.append(state[channel])
