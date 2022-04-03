@@ -4,17 +4,22 @@ import struct
 import re
 from io import BytesIO
 import sys
+from gzip import GzipFile
 
 if __name__ == "__main__":
 	if len(sys.argv) == 2:
 		FILE = sys.argv[1]
+		
+		if FILE.endswith(".vgz"):
+			vgm_file = GzipFile(filename=FILE)
+		else:
+			vgm_file = open(FILE, "rb")
 	else:
 		print("vgm2fui_OPM.py [vgm file]")
 		print()
 		print("Extracts YM2151 (OPM) preset data from a .vgm file")
 		print("and saves it in their own .fui files (.fui version 27+)")
 		print()
-		print("- The VGM file must be uncompressed")
 		print("- Instruments will be saved in the working directory")
 		exit(0)
 	
@@ -172,15 +177,14 @@ if __name__ == "__main__":
 			REGISTER_STATE[channel]["ops"][4]["r"] = int(v_[4:7+1],2)
 		return sub.group(0)
 
-	with open(FILE, "rb") as vgm_file:
-		# goto offset
-		vgm_file.seek(0x34)
-		offset = int.from_bytes(vgm_file.read(4), 'little')
-		vgm_file.seek(vgm_file.tell() + offset - 4)
-		
-		# read ym2151 commands
-		YM_RE = re.compile(b'\\x54(.)(.)', re.DOTALL)
-		YM_RE.sub(print_matches, vgm_file.read())
+	# goto offset
+	vgm_file.seek(0x34)
+	offset = int.from_bytes(vgm_file.read(4), 'little')
+	vgm_file.seek(vgm_file.tell() + offset - 4)
+	
+	# read ym2151 commands
+	YM_RE = re.compile(b'\\x54(.)(.)', re.DOTALL)
+	YM_RE.sub(print_matches, vgm_file.read())
 
 	# prevent duplicated instrument data
 	for state in STATES:

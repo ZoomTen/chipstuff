@@ -13,4 +13,4 @@ Depends on `furnacelib`.
 
 ## vgm2fui_OPM
 
-Standalone tool to extract instruments from (uncompressed) .vgm files to .fui instruments.
+Standalone tool to extract instruments from .vgm and .vgz files to .fui instruments.
