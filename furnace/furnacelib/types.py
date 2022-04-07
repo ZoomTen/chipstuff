@@ -131,7 +131,7 @@ class FurnaceChip(EnumShowNameOnly):
     SEGAPCM_DMF       = (0xa9,  5)
     MSM6295           = (0xaa,  4)
     MSM6258           = (0xab,  1)
-    COMMANDER_X16     = (0xac, 17)
+    COMMANDER_X16     = (0xac, 17)  # VERA
     BUBBLE_SYSTEM_WSG = (0xad,  2)
     SETA              = (0xae, 16)
     YM2610B_EX        = (0xaf, 19)
