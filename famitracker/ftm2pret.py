@@ -16,7 +16,7 @@ if __name__ == '__main__':
 
 	# -- setup --
 	
-	to_gb_env = lambda x: -7+((x & 0xf0) >> 4)-1 if (x & 0xf0) > 0 else 7-x+1
+	to_gb_env = lambda x: -((x & 0xf0) >> 4) if (x & 0xf0) > 0 else 7-x
 	nameify = lambda x: x.title().replace(' ', '')
 	constify = lambda x: x.upper().replace(' ', '_')
 	bpmify = lambda speed, tempo: 6 * tempo / speed
@@ -72,13 +72,13 @@ if __name__ == '__main__':
 						note_volume = 3
 						state['prev_volume'] = note_volume
 					elif 4 < note_volume < 8:
-						note_volume = 2
+						note_volume = 3
 						state['prev_volume'] = note_volume
 					elif 8 < note_volume < 12:
-						note_volume = 1
+						note_volume = 2
 						state['prev_volume'] = note_volume
 					elif 12 < note_volume < 16:
-						note_volume = 0
+						note_volume = 1
 						state['prev_volume'] = note_volume
 				else:
 					state['prev_volume'] = note_volume
@@ -184,6 +184,9 @@ if __name__ == '__main__':
 			print(f'\ttoggle_noise 0 ; delete this line if on pokered/pokeyellow')
 			print(f'\tdrum_speed 12')
 		
+		if 0 <= i < 2:
+			print(f'\tnote_type 12, 12, 8 ; fallback')
+			print(f'\tduty_cycle 0 ; fallback')
 		# add frames
 		for frame in channel['frames']:
 			frame_found = False
@@ -204,7 +207,7 @@ if __name__ == '__main__':
 				"channel": i,
 				"prev_row": None,
 				"prev_octave": None,
-				"prev_duty": 0,
+				"prev_duty": -1,
 				"prev_volume": 12,
 				"prev_envelope": 0x08,
 				"volume_changed": False,
