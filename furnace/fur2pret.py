@@ -7,11 +7,6 @@ to_tempo = lambda tempo: int(19296 / tempo)
 def pattern2asm(pattern, instruments):
 	data = pattern["data"]
 
-	dummy_row = {
-		"note": FurnaceNote.__, "octave": 0, "instrument": -1,
-		"volume": -1, "effects": [(-1,-1) for x in data[0]["effects"]]
-	}
-
 	note_bin = [] # dump notes here
 	command_bin = [] # convert from `note_bin`
 
@@ -128,6 +123,8 @@ def pattern2asm(pattern, instruments):
 			else:
 				# calculate note_type based on the current instrument and vol.
 				current_instrument = instruments[current_instrument_id].data["gameboy"]
+				if not current_volume:
+					current_volume = 0x0f
 				calculated_volume = int(
 					current_instrument["volume"] \
 					* (current_volume / 0x0f)
