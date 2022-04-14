@@ -585,14 +585,3 @@ class FurnaceWavetable:
     def __repr__(self):
         return "<Furnace wavetable '%s'>" % ( self.name )
 
-if __name__ == "__main__":
-    import sys
-    import pprint
-    pp = pprint.PrettyPrinter(4)
-
-    module = FurnaceModule(file_name=sys.argv[1])
-    pp.pprint(
-        (
-            module.wavetables
-        )
-    )

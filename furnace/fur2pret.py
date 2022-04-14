@@ -1,13 +1,30 @@
 import sys
+from copy import deepcopy
 from furnacelib import FurnaceModule, FurnaceChip, FurnaceNote
 
 bpmify = lambda timebase, speedSum, hz: (120.0 * hz) / (timebase * 4 * speedSum)
 to_tempo = lambda tempo: int(19296 / tempo)
 
+song_const_name = None
+
+def fetch_instrument_nos_in_pattern(pattern):
+	"""
+	Fetches the set of used instrument IDs.
+	"""
+	used_instruments = []
+	data = pattern["data"]
+	for i in range( len(data) ):
+		if data[i]["instrument"] != -1:
+			used_instruments.append(data[i]["instrument"])
+	return set(used_instruments)
+
 def pattern2asm(pattern, instruments):
+	global song_const_name
+	
 	data = pattern["data"]
 
 	note_bin = [] # dump notes here
+	safe_note_bin = [] # note_bin, except all values are <= 16
 	command_bin = [] # convert from `note_bin`
 
 	note_signature = None
@@ -21,10 +38,11 @@ def pattern2asm(pattern, instruments):
 		# detect Dxx or Bxx, only supports xx == 00
 		frame_cut = \
 			(next(filter(lambda x: x[0] == 0xD, data[i]["effects"]), None) is not None) or \
-			(next(filter(lambda x: x[0] == 0xB, data[i]["effects"]), None) is not None)
+			(next(filter(lambda x: x[0] == 0xB, data[i]["effects"]), None) is not None) or \
+			(next(filter(lambda x: x[0] == 0xFF, data[i]["effects"]), None) is not None)
 		if frame_cut:
 			frame_cut_on = i
-			# stop finding here, Bxx and Dxx cuts patterns short
+			# stop finding here, 0Bxx / 0Dxx / FFxx cuts patterns short
 			break
 
 	# cut pattern if we have a match
@@ -35,6 +53,7 @@ def pattern2asm(pattern, instruments):
 	for i in range( len(data) ):
 		# grab row
 		new_note_signature = "%s%d" % (data[i]["note"], data[i]["octave"])
+		
 		# note signature = string(note) + string(octave)
 		new_note = data[i]
 		if i == 0: # first row
@@ -60,13 +79,28 @@ def pattern2asm(pattern, instruments):
 					note = new_note
 					note_length = 1
 
+	for i in note_bin:
+		if i[1] >= 16:
+			# handle notes above the supported length
+			# by cloning them
+			note_mult, note_remain = divmod(i[1], 16)
+			cur_note, cur_len = i
+			# add cloned notes
+			for j in range(note_mult):
+				safe_note_bin.append( (cur_note, 16) )
+			# then add the remainder
+			if note_remain > 0:
+				safe_note_bin.append( (cur_note, note_remain) )
+		else:
+			safe_note_bin.append(i)
+	
 	# write the actual commands
 	current_instrument_id = None
 	current_volume		= None
 	current_wave_id	   = 0
 	current_octave		= None
 
-	for i in note_bin:
+	for i in safe_note_bin:
 		instrument_data_changed = False
 
 		note   = i[0]
@@ -103,6 +137,21 @@ def pattern2asm(pattern, instruments):
 			if has_duty_cycle is not None:
 				next_duty_cycle = has_duty_cycle[1] & 0b11
 				command_bin.append("duty_cycle %d" % next_duty_cycle)
+		
+		# apply any stereo effects
+		has_stereo_panning = next(filter(lambda x: x[0] == 0x08, note["effects"]), None)
+		
+		if has_stereo_panning is not None:
+			pan_value = hex(has_stereo_panning[1])[2:].zfill(2)
+			pan_statements = ["FALSE", "FALSE"]
+			# value of 0 will disable channel, otherwise enables it
+			# left
+			if pan_value[0] != "0":
+				pan_statements[0] = "TRUE"
+			# right
+			if pan_value[1] != "0":
+				pan_statements[1] = "TRUE"
+			command_bin.append("stereo_panning %s, %s" % tuple(pan_statements))
 
 		# insert instrument commands
 		if instrument_data_changed:
@@ -136,7 +185,10 @@ def pattern2asm(pattern, instruments):
 				command_bin.append("note_type 12, %d, %d" % (calculated_volume, calculated_env))
 
 		# insert any octave changes
-		if (note["octave"] != 0) and (note["octave"] != current_octave):
+		if \
+		(note["octave"] != 0) and \
+		(note["octave"] != current_octave) and \
+		pattern["channel"] != 3:
 			current_octave = note["octave"]
 			command_bin.append("octave %d" % max(current_octave - 1, 0))
 
@@ -144,9 +196,13 @@ def pattern2asm(pattern, instruments):
 		if (note["note"] == FurnaceNote.OFF) or (note["note"] == FurnaceNote.__):
 			command_bin.append("rest %d" % length)
 		else:
-			# XXX: Temporary solution
-			note_name = note["note"].__str__().replace("s", "#")
-			command_bin.append("note %s, %d" % (note_name, length))
+			if pattern["channel"] == 3:
+				drum_inst = hex(note["instrument"])[2:].zfill(2)
+				command_bin.append("drum_note DRUM_%s_%s, %d" % (song_const_name, drum_inst, length))
+			else:
+				# XXX: Temporary solution
+				note_name = note["note"].__str__().replace("s", "#")
+				command_bin.append("note %s, %d" % (note_name, length))
 
 	return command_bin
 
@@ -169,6 +225,7 @@ if __name__ == "__main__":
 
 	song_name = module.meta["name"].title().replace(" ","")
 	asm_name  = "%s.asm" % module.meta["name"].lower().replace(" ","_")
+	song_const_name = module.meta["name"].upper().replace(" ", "_")
 
 	patterns = {
 		0: filter(lambda x: x["channel"] == 0, module.patterns),
@@ -182,6 +239,23 @@ if __name__ == "__main__":
 	print("Music_%s:\n\tchannel_count 4\n\tchannel 1, Music_%s_Ch1\n\tchannel 2, Music_%s_Ch2\n\tchannel 3, Music_%s_Ch3\n\tchannel 4, Music_%s_Ch4\n" % (
 		song_name, song_name, song_name, song_name, song_name
 	))
+	
+	# populate drum list
+	drum_patterns = deepcopy(patterns[3]) # so we don't use up our patterns bucket early
+	drum_instruments = set()
+	drum_channel_pattern = next(drum_patterns, None)
+	while drum_channel_pattern:
+		drum_instruments = drum_instruments | fetch_instrument_nos_in_pattern(drum_channel_pattern)
+		drum_channel_pattern = next(drum_patterns, None)
+	
+	# insert constants
+	print("; Drum constants, replace with the proper values")
+	for i in drum_instruments:
+		print("DRUM_%s_%s\tEQU\t%d" % (song_const_name, hex(i)[2:].zfill(2), 0))
+		
+	print("\n; Drumset to use, replace with the proper value")
+	print("DRUMSET_%s\tEQU\t%d" % (song_const_name, 0))
+	print()
 
 	# go through all the channels
 	for ch_order in module.order:
@@ -195,6 +269,10 @@ if __name__ == "__main__":
 				module.timing["clockSpeed"]
 			))
 			print("\ttempo %d\n\tvolume 7, 7" % tempo)
+		elif ch_order == 3:
+			# noise ch
+			print("\ttoggle_noise DRUMSET_%s" % (song_const_name))
+			print("\tdrum_speed 12")
 
 		# go through the module order in each channel
 		for order_num in module.order[ch_order]:
