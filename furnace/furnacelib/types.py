@@ -37,6 +37,28 @@ class FurnaceNote(EnumShowNameOnly):
     OFF_REL = 101
     REL     = 102
 
+class FurnaceMacroItem(EnumShowNameOnly):
+    """
+    Special values used only in this parser
+    """
+    LOOP    = 0
+    RELEASE = 1
+
+class FurnaceSampleType(EnumShowNameOnly):
+    """
+    Sample types used in Furnace
+    """
+    ZX_DRUM      = 0
+    NES_DPCM     = 1
+    QSOUND_ADPCM = 4
+    ADPCM_A      = 5
+    ADPCM_B      = 6
+    X68K_ADPCM   = 7
+    PCM_8        = 8
+    SNES_BRR     = 9
+    VOX          = 10
+    PCM_16       = 16
+
 class FurnaceInstrumentType(EnumShowNameOnly):
     """
     Instrument types currently available as of dev70
@@ -133,8 +155,14 @@ class FurnaceChip(EnumShowNameOnly):
     MSM6258           = (0xab,  1)
     COMMANDER_X16     = (0xac, 17)  # VERA
     BUBBLE_SYSTEM_WSG = (0xad,  2)
-    SETA              = (0xae, 16)
-    YM2610B_EX        = (0xaf, 19)
+    OPL4              = (0xae, 42)
+    OPL4_DRUMS        = (0xaf, 44)
+    SETA              = (0xb0, 16) # Allumer X1-010
+    ES5506            = (0xb1, 32)
+    Y8950             = (0xb2, 10)
+    Y8950_DRUMS       = (0xb3, 12)
+    SCC_PLUS          = (0xb4, 5)
+    YM2610B_EX        = (0xde, 19)
     QSOUND            = (0xe0, 19)
 
     def __new__(cls, id, channels):
