@@ -5,7 +5,7 @@ This is a library for viewing and manipulating FurnaceTracker .fur files.
 
 import zlib
 import io
-from .util import read_as, read_as_single
+from .util import read_as, read_as_single, write_as
 from .types import FurnaceChip, FurnaceNote, FurnaceInstrumentType, FurnaceMacroItem
 
 FUR_STRING = b"-Furnace module-"
@@ -83,9 +83,11 @@ class FurnaceModule:
         self.chips = {}
         self.info = {}
         self.compatFlags = []
+        self.extendedCompatFlags = None
         self.patterns = []
         self.instruments = []
         self.wavetables = []
+        self.samples = []
 
         # these are only used in the loading routines
         self.__version = None
@@ -190,6 +192,7 @@ class FurnaceModule:
             "patternLength": 1,
             "tuning": 440.0
         }
+        self.extendedCompatFlags = b"\x00" * 32
         self.compatFlags = [
             b"\x00\x01\x00\x00\x00\x00\x00\x00\x01\x01\x00\x00\x00\x00\x00\x00",
             b"\x00\x00\x01\x01"
@@ -214,6 +217,120 @@ class FurnaceModule:
         self.wavetables = []
         self.samples = []
 
+    def save_to_stream(self, stream):
+        """
+        Save an uncompressed Furnace module file.
+        This is untested.
+        """
+        version = self.meta["version"]
+        
+        stream.write(FUR_STRING)
+        # assume that song info always come after the basic header
+        write_as("hhi", (version, 0, 0x20), stream)
+        stream.write(b"\x00" * 8)
+        
+        stream.write(b"INFO")
+        stream.write(b"\x00" * 4)
+        write_as("bbbbf", (
+            self.timing["timebase"],
+            *self.timing["speed"],
+            self.timing["arpSpeed"],
+            self.timing["clockSpeed"]
+        ), stream)
+        
+        length = 0
+        for i in self.patterns:
+            new_length = len(i["data"])
+            if new_length > length:
+                length = new_length
+        
+        order_length = len(self.order[0])
+        
+        write_as("hhbbhhhi", (
+                length,
+                order_length,
+                *self.timing["highlight"],
+                len(self.instruments),
+                len(self.wavetables),
+                len(self.samples),
+                len(self.patterns)
+            ), stream
+        )
+        
+        chips = [b"\x00"] * 32
+        chips_pos = 0
+        for i in self.chips["list"]:
+            chips[chips_pos] = int.to_bytes(i.value, 1, "little")
+            chips_pos += 1
+        stream.write(b"".join(chips))
+        
+        for i in self.chips["volume"]:
+            write_as("B", [int(i * 64)], stream)
+        
+        for i in self.chips["panning"]:
+            write_as("B", [int(i * 64)], stream)
+        
+        for i in self.chips["settings"]:
+            stream.write(i)
+        
+        write_as("string", self.meta["name"], stream)
+        write_as("string", self.meta["author"], stream)
+        write_as("f", (self.info["tuning"],), stream)
+        
+        # compatFlags are a blob for now
+        for i in self.compatFlags:
+            stream.write(i)
+        
+        # to get back to later
+        pointer_locs = {}
+        pointer_locs["instruments"] = stream.tell()
+        for i in range( len(self.instruments) ):
+            write_as("i", (0,), stream)
+        pointer_locs["wavetables"] = stream.tell()
+        for i in range( len(self.wavetables) ):
+            write_as("i", (0,), stream)
+        pointer_locs["samples"] = stream.tell()
+        for i in range( len(self.samples) ):
+            write_as("i", (0,), stream)
+        pointer_locs["patterns"] = stream.tell()
+        for i in range( len(self.patterns) ):
+            write_as("i", (0,), stream)
+        
+        # write ordering
+        for i in range(order_length):
+            for j in self.order:
+                write_as("b", (self.order[j][i],), stream)
+        
+        for i in self.info["effectColumns"]:
+            write_as("b", (i,), stream)
+        
+        for i in self.info["channelsShown"]:
+            if i:
+                stream.write(b"\x01")
+            else:
+                stream.write(b"\x00")
+        
+        for i in self.info["channelsCollapsed"]:
+            if i:
+                stream.write(b"\x01")
+            else:
+                stream.write(b"\x00")
+        
+        for i in self.info["channelNames"]:
+            write_as("string", i, stream)
+        
+        for i in self.info["channelAbbreviations"]:
+            write_as("string", i, stream)
+        
+        write_as("string", self.meta["comment"], stream)
+        
+        if version >= 59:
+            write_as("f", (self.info["masterVolume"],), stream)
+        
+        if version >= 70:
+            if self.extendedCompatFlags:
+                stream.write(self.extendedCompatFlags)
+        
     def __read_header(self, stream):
         if stream.read(16) != FUR_STRING:
             raise Exception("Invalid Furnace module (magic number invalid)")
@@ -351,6 +468,8 @@ class FurnaceModule:
             extendedCompat += stream.read(1)
         if (self.__version >= 83):
             extendedCompat += stream.read(2)
+        
+        self.extendedCompatFlags = extendedCompat
 
     def __read_instruments(self, stream):
         for i in self.__loc_instruments:

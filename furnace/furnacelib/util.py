@@ -32,6 +32,21 @@ def read_as(format, file):
         size += known_sizes.get(i, 0)
     return struct.unpack("<"+format, file.read(size))
 
+def write_as(format, contents, file):
+    """
+    Frontend to struct.pack that always operates in little-endian.
+
+    Passing `format="string"` will make it read a single null-terminated string
+    from the file's current position.
+    
+    contents is a tuple
+    """
+    if format == "string":
+        file.write( contents.encode("ascii") )
+        return file.write( b"\x00" )
+    
+    return file.write( struct.pack("<"+format, *contents) )
+
 def read_as_single(format, file):
     """
     If the `read_as` format is a single character it'll still
