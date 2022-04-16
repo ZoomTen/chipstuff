@@ -1,6 +1,7 @@
 import sys
 from copy import deepcopy
 from furnacelib import FurnaceModule, FurnaceChip, FurnaceNote
+from furnacelib.tools import pattern2seq
 
 bpmify = lambda timebase, speedSum, hz: (120.0 * hz) / (timebase * 4 * speedSum)
 to_tempo = lambda tempo: int(19296 / tempo)
@@ -12,7 +13,7 @@ def fetch_instrument_nos_in_pattern(pattern):
 	Fetches the set of used instrument IDs.
 	"""
 	used_instruments = []
-	data = pattern["data"]
+	data = pattern.data
 	for i in range( len(data) ):
 		if data[i]["instrument"] != -1:
 			used_instruments.append(data[i]["instrument"])
@@ -21,64 +22,10 @@ def fetch_instrument_nos_in_pattern(pattern):
 def pattern2asm(pattern, instruments):
 	global song_const_name
 	
-	data = pattern["data"]
-
-	note_bin = [] # dump notes here
+	note_bin = pattern2seq(pattern)
 	safe_note_bin = [] # note_bin, except all values are <= 16
 	command_bin = [] # convert from `note_bin`
-
-	note_signature = None
-	note = None # `note_signature` corresponding row
-	note_length = None
-
-	frame_cut_on = None # which row to cut on
-
-	# preprocess pattern
-	for i in range( len(data) ):
-		# detect Dxx or Bxx, only supports xx == 00
-		frame_cut = \
-			(next(filter(lambda x: x[0] == 0xD, data[i]["effects"]), None) is not None) or \
-			(next(filter(lambda x: x[0] == 0xB, data[i]["effects"]), None) is not None) or \
-			(next(filter(lambda x: x[0] == 0xFF, data[i]["effects"]), None) is not None)
-		if frame_cut:
-			frame_cut_on = i
-			# stop finding here, 0Bxx / 0Dxx / FFxx cuts patterns short
-			break
-
-	# cut pattern if we have a match
-	if frame_cut_on:
-		data = data[:frame_cut_on+1]
-
-	# convert rows to note and length
-	for i in range( len(data) ):
-		# grab row
-		new_note_signature = "%s%d" % (data[i]["note"], data[i]["octave"])
-		
-		# note signature = string(note) + string(octave)
-		new_note = data[i]
-		if i == 0: # first row
-			note_signature = new_note_signature
-			note = new_note
-			note_length = 1
-		else:
-			if (i == len(data)-1):
-				if (new_note_signature == "__0"):
-					note_length += 1
-				else:
-					note_bin.append( (note, note_length) ) # previous note
-					note_signature = new_note_signature
-					note = new_note
-				note_bin.append( (note, note_length) )
-			else:
-				if (new_note_signature == "__0"):
-					# blank row
-					note_length += 1
-				else:
-					note_bin.append( (note, note_length) )
-					note_signature = new_note_signature
-					note = new_note
-					note_length = 1
-
+	
 	for i in note_bin:
 		if i[1] >= 16:
 			# handle notes above the supported length
@@ -116,7 +63,7 @@ def pattern2asm(pattern, instruments):
 			instrument_data_changed = True
 
 		# change waveform ONLY through 10xx
-		if pattern["channel"] == 2:
+		if pattern.channel == 2:
 			has_next_wave = next(filter(lambda x: x[0] == 0x10, note["effects"]), None)
 			if has_next_wave is not None:
 				next_wave_number = max(has_next_wave[1], 0)
@@ -131,7 +78,7 @@ def pattern2asm(pattern, instruments):
 			command_bin.append("pitch_offset %d" % next_pitch_offset)
 
 		# change duty cycle ONLY through 12xx
-		if pattern["channel"] <= 1:
+		if pattern.channel <= 1:
 			has_duty_cycle = next(filter(lambda x: x[0] == 0x12, note["effects"]), None)
 
 			if has_duty_cycle is not None:
@@ -156,9 +103,11 @@ def pattern2asm(pattern, instruments):
 		# insert instrument commands
 		if instrument_data_changed:
 			# recalculate note_type
-			if pattern["channel"] == 2:
+			if pattern.channel == 2:
 				# wavetable channel has a special note_type
-				if current_volume >= 12:
+				if not current_volume:
+					calculated_volume = 1
+				elif current_volume >= 12:
 					calculated_volume = 1
 				elif current_volume >= 8:
 					calculated_volume = 2
@@ -166,7 +115,7 @@ def pattern2asm(pattern, instruments):
 					calculated_volume = 3
 
 				command_bin.append("note_type 12, %d, %d" % (calculated_volume, current_wave_id))
-			elif pattern["channel"] == 3:
+			elif pattern.channel == 3:
 				# TODO: noise channel
 				pass
 			else:
@@ -188,7 +137,7 @@ def pattern2asm(pattern, instruments):
 		if \
 		(note["octave"] != 0) and \
 		(note["octave"] != current_octave) and \
-		pattern["channel"] != 3:
+		pattern.channel != 3:
 			current_octave = note["octave"]
 			command_bin.append("octave %d" % max(current_octave - 1, 0))
 
@@ -196,7 +145,7 @@ def pattern2asm(pattern, instruments):
 		if (note["note"] == FurnaceNote.OFF) or (note["note"] == FurnaceNote.__):
 			command_bin.append("rest %d" % length)
 		else:
-			if pattern["channel"] == 3:
+			if pattern.channel == 3:
 				drum_inst = hex(note["instrument"])[2:].zfill(2)
 				command_bin.append("drum_note DRUM_%s_%s, %d" % (song_const_name, drum_inst, length))
 			else:
@@ -228,10 +177,10 @@ if __name__ == "__main__":
 	song_const_name = module.meta["name"].upper().replace(" ", "_")
 
 	patterns = {
-		0: filter(lambda x: x["channel"] == 0, module.patterns),
-		1: filter(lambda x: x["channel"] == 1, module.patterns),
-		2: filter(lambda x: x["channel"] == 2, module.patterns),
-		3: filter(lambda x: x["channel"] == 3, module.patterns)
+		0: filter(lambda x: x.channel == 0, module.patterns),
+		1: filter(lambda x: x.channel == 1, module.patterns),
+		2: filter(lambda x: x.channel == 2, module.patterns),
+		3: filter(lambda x: x.channel == 3, module.patterns)
 	}
 
 	# g/s/c header
@@ -281,7 +230,7 @@ if __name__ == "__main__":
 
 		# fetch the relevant pattern
 		for order_num in module.order[ch_order]:
-			target_pattern = next(filter(lambda x: x["index"] == order_num, patterns[ch_order]), None)
+			target_pattern = next(filter(lambda x: x.index == order_num, patterns[ch_order]), None)
 			if target_pattern != None:
 				print(".pattern%d" % order_num)
 				# put each command

@@ -54,3 +54,11 @@ def read_as_single(format, file):
     """
     return read_as(format, file)[0]
 
+def truthy_to_boolbyte(value):
+    """
+    If value is truthy, output b'\x01'. Else output b'\x00'.
+    """
+    if value:
+        return b"\x01"
+    else:
+        return b"\x00"
