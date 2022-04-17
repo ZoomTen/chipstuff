@@ -43,24 +43,28 @@ class FurnaceModule:
         * `channelsShown` - A `list` of booleans. Corresponds to channel order.
         * `effectColumns` - A `list` of integers. Corresponds to channel order.
         * `masterVolume` - Available in later Furnace builds. 2.0 by default.
-        * `patternLength`
-        * `tuning`
+        * `patternLength` - Nominal length of patterns.
+        * `tuning` - A `float` that indicated which frequency A-4 is tuned to.
 
     `meta`
     ------
-    TODO
+    Metadata about the module. Contained within:
+        * `author` - Song author.
+        * `comment` - Song comment.
+        * `name` - Song name.
+        * `version` - An `integer` indicating the file type version.
 
     `instruments`
     -------------
-    TODO
+    A list of `FurnaceInstrument` used in the module.
 
     `order`
     -------
-    TODO
+    A `dict` containing lists of order numbers per channel.
 
     `patterns`
     ----------
-    TODO
+    A list of `FurnacePattern` used in the module.
 
     `timing`
     --------

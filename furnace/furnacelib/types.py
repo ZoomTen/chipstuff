@@ -64,7 +64,7 @@ class FurnaceInstrumentType(EnumShowNameOnly):
     Instrument types currently available as of dev70
     """
     STANDARD    = 0
-    FM_4OP      = 1
+    FM_4OP      = 1 # OPM, OPN
     GB          = 2
     C64         = 3
     AMIGA       = 4
@@ -89,6 +89,7 @@ class FurnaceInstrumentType(EnumShowNameOnly):
     LYNX        = 23
     VERA        = 24
     X1010       = 25
+    VRC6_SAW    = 26
 
 class FurnaceChip(EnumShowNameOnly):
     """

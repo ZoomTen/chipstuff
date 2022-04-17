@@ -3,6 +3,8 @@ def pattern2seq(pattern):
 	"""
 	Converts Furnace pattern data to sequence data in the <note, length> format
 	such as used in MIDI and in a lot of retro sound engines.
+	
+	Does not suport EDxx effects
 	"""
 	
 	data = pattern.data
