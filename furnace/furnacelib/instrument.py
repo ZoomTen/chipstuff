@@ -10,6 +10,8 @@ class FurnaceInstrument:
         self.version = None
         self.type = None
         self.name = None
+        self.wavetables = []
+        self.samples = []
 
         if type(file_name) is str:
             self.load_from_file(file_name)
@@ -17,10 +19,26 @@ class FurnaceInstrument:
             self.load_from_stream(stream)
 
     def load_from_file(self, file_name):
-        pass # TODO
-
-    def load_from_bytes(self, bytes):
-        pass # TODO
+        """
+        Deserializes a .fui file. Automatically detects compressed or
+        uncompressed files.
+        """
+        self.file_name = file_name
+        with open(file_name, "rb") as stream:
+            if stream.read(16) != b"-Furnace instr.-":
+                raise Exception("Not an instrument file?")
+            
+            stream.read(2) # format version, not sure if this is relevant
+            stream.read(2) # reserved
+            
+            inst_loc = read_as_single("i", stream)
+            num_wavetables = read_as_single("h", stream)
+            num_samples    = read_as_single("h", stream)
+            stream.read(4) # reserved
+            # TODO: populate wavetables
+            # TODO: populate samples
+            
+            self.load_from_stream(stream)
 
     def load_from_stream(self, stream):
         self.__read_header(stream)
@@ -275,7 +293,7 @@ class FurnaceInstrument:
                 read_as_single("b", stream)
              ]
         }
-
+        
     def __read_header(self, stream):
         if stream.read(4) != b"INST":
             raise Exception("Not an instrument?")
