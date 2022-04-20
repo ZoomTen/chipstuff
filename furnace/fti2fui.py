@@ -2,7 +2,7 @@
 import sys
 from enum import Enum, auto
 import struct
-from furnacelib import FurnaceInstrument
+from furnacelib import FurnaceInstrument, FurnaceInstrumentType, FurnaceMacroItem
 
 def read_as(format, file):
     """
@@ -168,11 +168,125 @@ class FamitrackerInstrument:
         pass # XXX TODO
 
 if __name__ == "__main__":
-    inst = FamitrackerInstrument(sys.argv[1])
-    print("name:   ", inst.name)
-    print("type:   ", inst.type)
-    print("macros: ", inst.macros)
-    print("data:   ", inst.data)
+    if len(sys.argv) == 3:
+        in_file = sys.argv[1]
+        out_file = sys.argv[2]
+    else:
+        print("fti2fui.py [fti file] [fui file]")
+        print()
+        print("Converts FamiTracker instruments into Furnace instruments")
+        print()
+        print("Currently implemented:")
+        print("- 2A03 (NES)")
+        print("- VRC6")
+        print("- VRC7 (OPLL)")
+        exit(0)
     
-    # TODO: implement the furnace instrument exporter
-    out_inst = FurnaceInstrument()
+    inst = FamitrackerInstrument(in_file)
+    #print("name:   ", inst.name)
+    #print("type:   ", inst.type)
+    #print("macros: ", inst.macros)
+    #print("data:   ", inst.data)
+    
+    out_inst = FurnaceInstrument(make_new=True)
+    
+    out_inst.name = inst.name
+    
+    if inst.type in [\
+        FamitrackerInstType.INST_2A03,\
+        FamitrackerInstType.INST_VRC6,\
+    ]:
+        out_inst.type = FurnaceInstrumentType.STANDARD
+        macros = {
+            "volume": [],
+            "arp": [],
+            "pitch": [],
+            "duty": []
+        }
+        arpFixedMode = inst.data.get("isArpFixed", 0)
+        
+        for macro in inst.macros:
+            for entry in inst.macros[macro]:
+                if entry == FamitrackerSeqSpecials.SEQ_LOOP:
+                    macros[macro].append(FurnaceMacroItem.LOOP)
+                elif entry == FamitrackerSeqSpecials.SEQ_RELEASE:
+                    macros[macro].append(FurnaceMacroItem.RELEASE)
+                else:
+                    if macro == "arp":
+                        if arpFixedMode:
+                            macros[macro].append(entry - 12)
+                        else:
+                            macros[macro].append(entry)
+                    else:
+                        macros[macro].append(entry)
+            out_inst.data["macros"][macro] = macros[macro]
+        
+        out_inst.data["macros"]["arpMode"] = arpFixedMode
+    elif inst.type == FamitrackerInstType.INST_VRC7:
+        out_inst.type = FurnaceInstrumentType.FM_OPLL
+        
+        out_inst.data["fm"]["opll"] = inst.data["patchNum"]
+        
+        registers = [\
+            bin(x)[2:].zfill(8) for x in inst.data["customParams"]\
+        ]
+        
+        fm = {
+            "opCount": 2
+        }
+        
+        ops = [
+            {},
+            {}
+        ]
+        
+        # 00
+        ops[0]["am"]     = int(registers[0][0],2)
+        ops[0]["vib"]    = int(registers[0][1],2)
+        ops[0]["ssgEnv"] = int(registers[0][2],2) << 3
+        ops[0]["ksr"]    = int(registers[0][3],2)
+        ops[0]["mult"]   = int(registers[0][4:8],2)
+        
+        # 01
+        ops[1]["am"]     = int(registers[1][0],2)
+        ops[1]["vib"]    = int(registers[1][1],2)
+        ops[1]["ssgEnv"] = int(registers[1][2],2) << 3
+        ops[1]["ksr"]    = int(registers[1][3],2)
+        ops[1]["mult"]   = int(registers[1][4:8],2)
+        
+        # 02
+        ops[0]["ksl"]    = int(registers[2][0:2],2)
+        ops[0]["tl"]     = int(registers[2][2:8],2)
+        
+        # 03
+        ops[1]["ksl"]    = int(registers[3][0:2],2)
+        fm["fms"]        = int(registers[3][3],2)
+        fm["ams"]        = int(registers[3][4],2)
+        fm["feedback"]   = int(registers[3][5:8],2)
+        
+        # 04
+        ops[0]["ar"]     = int(registers[4][0:4],2)
+        ops[0]["dr"]     = int(registers[4][4:8],2)
+        
+        # 05
+        ops[1]["ar"]     = int(registers[5][0:4],2)
+        ops[1]["dr"]     = int(registers[5][4:8],2)
+        
+        # 06
+        ops[0]["sl"]     = int(registers[6][0:4],2)
+        ops[0]["rr"]     = int(registers[6][4:8],2)
+        
+        # 07
+        ops[1]["sl"]     = int(registers[7][0:4],2)
+        ops[1]["rr"]     = int(registers[7][4:8],2)
+        
+        for i in fm:
+            out_inst.data["fm"][i] = fm[i]
+        
+        for i in range( len(ops) ):
+            for param in ops[i]:
+                out_inst.data["fm"]["ops"][i][param] = \
+                ops[i][param]
+    
+    out_inst.save_to_file(out_file)
+    print("saved %s -> %s" % (in_file, out_file))
