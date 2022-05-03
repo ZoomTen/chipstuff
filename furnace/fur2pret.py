@@ -228,9 +228,14 @@ if __name__ == "__main__":
 			print("\tsound_call .pattern%d" % order_num)
 		print("\tsound_ret\n")
 
+		cur_patterns = list(patterns[ch_order])
+		
 		# fetch the relevant pattern
-		for order_num in module.order[ch_order]:
-			target_pattern = next(filter(lambda x: x.index == order_num, patterns[ch_order]), None)
+		for order_num in list(set(module.order[ch_order])):
+			target_pattern = None
+			for patt in cur_patterns:
+				if patt.index == order_num:
+					target_pattern = patt
 			if target_pattern != None:
 				print(".pattern%d" % order_num)
 				# put each command
