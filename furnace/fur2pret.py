@@ -222,6 +222,10 @@ if __name__ == "__main__":
 			# noise ch
 			print("\ttoggle_noise DRUMSET_%s" % (song_const_name))
 			print("\tdrum_speed 12")
+		
+		# prevent rests at start from breaking
+		if ch_order != 3:
+			print("\tnote_type 12, 15, 0")
 
 		# go through the module order in each channel
 		for order_num in module.order[ch_order]:
