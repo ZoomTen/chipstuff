@@ -224,59 +224,35 @@ if __name__ == "__main__":
         out_inst.data["macros"]["arpMode"] = arpFixedMode
     elif inst.type == FamitrackerInstType.INST_VRC7:
         out_inst.type = FurnaceInstrumentType.FM_OPLL
-        
         out_inst.data["fm"]["opll"] = inst.data["patchNum"]
-        
         registers = [\
             bin(x)[2:].zfill(8) for x in inst.data["customParams"]\
         ]
-        
-        fm = {
-            "opCount": 2
-        }
-        
-        ops = [
-            {},
-            {}
-        ]
-        
+        fm = {"opCount": 2}
+        ops = [{},{}]
         # 00
         ops[0]["am"]     = int(registers[0][0],2)
         ops[0]["vib"]    = int(registers[0][1],2)
-        ops[0]["ssgEnv"] = int(registers[0][2],2) << 3
+        ops[0]["ssgEnv"] = int(registers[0][2],2) << 3 # sus
         ops[0]["ksr"]    = int(registers[0][3],2)
         ops[0]["mult"]   = int(registers[0][4:8],2)
-        
-        # 01
         ops[1]["am"]     = int(registers[1][0],2)
         ops[1]["vib"]    = int(registers[1][1],2)
-        ops[1]["ssgEnv"] = int(registers[1][2],2) << 3
+        ops[1]["ssgEnv"] = int(registers[1][2],2) << 3 # sus
         ops[1]["ksr"]    = int(registers[1][3],2)
         ops[1]["mult"]   = int(registers[1][4:8],2)
-        
-        # 02
         ops[0]["ksl"]    = int(registers[2][0:2],2)
         ops[0]["tl"]     = int(registers[2][2:8],2)
-        
-        # 03
         ops[1]["ksl"]    = int(registers[3][0:2],2)
         fm["fms"]        = int(registers[3][3],2)
         fm["ams"]        = int(registers[3][4],2)
         fm["feedback"]   = int(registers[3][5:8],2)
-        
-        # 04
         ops[0]["ar"]     = int(registers[4][0:4],2)
         ops[0]["dr"]     = int(registers[4][4:8],2)
-        
-        # 05
         ops[1]["ar"]     = int(registers[5][0:4],2)
         ops[1]["dr"]     = int(registers[5][4:8],2)
-        
-        # 06
         ops[0]["sl"]     = int(registers[6][0:4],2)
         ops[0]["rr"]     = int(registers[6][4:8],2)
-        
-        # 07
         ops[1]["sl"]     = int(registers[7][0:4],2)
         ops[1]["rr"]     = int(registers[7][4:8],2)
         
