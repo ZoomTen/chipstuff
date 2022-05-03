@@ -7,6 +7,8 @@ bpmify = lambda timebase, speedSum, hz: (120.0 * hz) / (timebase * 4 * speedSum)
 to_tempo = lambda tempo: int(19296 / tempo)
 
 song_const_name = None
+current_wave_id = None
+current_volume  = None
 
 def fetch_instrument_nos_in_pattern(pattern):
 	"""
@@ -21,6 +23,8 @@ def fetch_instrument_nos_in_pattern(pattern):
 
 def pattern2asm(pattern, instruments):
 	global song_const_name
+	global current_wave_id
+	global current_volume
 	
 	note_bin = pattern2seq(pattern)
 	safe_note_bin = [] # note_bin, except all values are <= 16
@@ -43,8 +47,6 @@ def pattern2asm(pattern, instruments):
 	
 	# write the actual commands
 	current_instrument_id = None
-	current_volume		= None
-	current_wave_id	   = 0
 	current_octave		= None
 
 	for i in safe_note_bin:
