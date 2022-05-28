@@ -1,7 +1,8 @@
 #title Shizuoka
 #author Junichi Masuda
 
-A {
+
+A { // accompaniment
 	t114
 	@vol(7 7)
 	
@@ -12,24 +13,19 @@ A {
 @l
 	@env(12 2)
 	l8<
-		fda+d
-		fda+d
-		fda+d
+		[fda+d]3
 		dc<a+a>
-		d+cgc
-		d+cgc
+		[d+cgc]2
 		fcac
 		agaf
 
-		fda+d
-		fda+d
+		[fda+d]2
 		fda+a
 		a+agf
 
 		d+cgd+
 		gfga+
-		afb+f
-		afb+f
+		[afb+f]2
 
 	@env(12 7)
 	l4.
@@ -39,9 +35,9 @@ A {
 		b+a+>d4f2.
 	l8
 		<a+>c
-	}
+}
 
-B {
+B { // lead
 	@duty(3) @vib(8 2 6)
 	@env(13 3)
 	<a+8>c8
@@ -60,11 +56,21 @@ B {
 	gfd+4c1gfa+4a1gfd+4c1gfa+4a1
 }
 
-C {
+C { // high bass
 	@env(1 3) // wave instrument
 	r
 
 @l
 	l4.fda+4fdf4gd+a+4agf4a+da+4fda+4d+gd+4fga4ga+g4l8afb+fafb+fg4.a+4.g4
 	af>cdd+dc<ag4.a+4.g4afb+fafb+fl4.ga+>d4fd+c4<
+}
+
+D { // drums
+	@drum(3)
+	
+	r
+	
+@l
+	l4. f+f+
+	l8  f+f+
 }

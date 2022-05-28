@@ -1,0 +1,92 @@
+#title STMPWYFS
+
+/* incomplete test cover */
+
+A { // accompaniment
+	t235 // tempo must be here!
+	
+	@tone(2) // pitch shift
+@l
+	l8 @duty(0)
+	o3
+	@env(8 6) g4 f4 g4
+
+	//
+		<ff+g>gf d4 c<a+g4r8
+		>c<a+>c4
+		<dd+e>c<ef>c+<ff+>d4r8
+	//--
+
+		gfg4
+
+	//
+		<ff+g>gf d4 c<a+g4r8
+		>c<a+>c4
+		<dd+e>c<ef>c+<ff+>d8
+	//--
+	
+	o4 l4 @duty(2) @env(7 2)
+	a+>d+gd+<
+	a>d+gd+<
+	a->d+gd+<
+	g>d+gd+<
+	a+>d+gd+<
+	a>d+gd+<
+	a->d+gd+<
+	r1
+}
+
+B { // lead instrument
+
+	l8 @duty(3)
+	
+	@vib(8 4 3)
+	
+	o4
+	
+@l
+		@env(12 4) g4 @env(12 1) f4 g4
+
+	//
+		<ff+g>gf @env(12 4) d4 @env(12 1) c<a+g4.
+		>c<a+>c4
+		<dd+e>c<ef>c+<ff+>d4.
+	//--
+
+		gfg4
+
+	//
+		<ff+g>gf @env(12 4) d4 @env(12 1) c<a+g4.
+		>c<a+>c4
+		<dd+e>c<ef>c+<ff+>d4.
+	//--
+		
+		@env(12 2) d+ @env(12 1) dd+r
+		d+ff+d<af+rg @env(12 3) a4r4>
+		@env(12 2)c @env(12 1) <a+>crc<a+>c<a+>dcrc< @env(12 3) a+4r4>
+
+		@env(12 2) d+ @env(12 1) dd+r
+		d+ff+d<af+rg @env(12 3) a4r4>
+		@env(12 2)c @env(12 1) <a+>cr
+		c<a+>c<a+>cf+4g @env(12 3) a4
+}
+
+C { // bass
+	@env(1 9) // wave instrument
+@l
+	l8 o3
+	[dg]8[c>c<]6c+>c+<d>d<
+	[dg]8[c>c<]6c+>c+<d>d< // duplicate of above
+	
+	l4<
+	
+	[a+>d+<]2
+	[a>d<]2
+	[a->d-<]2
+	[g>c<]2
+	
+	[a+>d+<]2 // duplicate of above
+	[a>d<]2
+	[a->d-<]2
+	r1
+}

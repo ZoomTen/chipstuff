@@ -71,8 +71,10 @@ LENGTH_TABLE = { # ! means this is accurate
 
 num_loop_points = 0
 
-def mml2commands(text, subroutine=False, is_drums=False):
-    state={"length": "4", "octave": 4}
+def mml2commands(text, subroutine=False, is_drums=False, start_channel=True, state={"length": "4", "octave": 4}):
+    if start_channel:
+        state = {"length": "4", "octave": 4}
+        
     command_bin = []
     
     def add_tempo(tempo):
@@ -115,12 +117,17 @@ def mml2commands(text, subroutine=False, is_drums=False):
             (("O"), (octave)) # octave
         )
     
-    def add_raw_note(note, length_tuple):
-        command_bin.append(
-            (("N"), (note, length_tuple)) # note
-        )
+    def add_raw_note(note, length_tuple, drums=False):
+        if drums:
+            command_bin.append(
+                (("ND"), (note, length_tuple)) # note (drums)
+            )
+        else:
+            command_bin.append(
+                (("N"), (note, length_tuple)) # note
+            )
     
-    def add_note(note, length_string):
+    def add_note(note, length_string, drums=False):
         if length_string[-1] == ".":
             now_length = LENGTH_TABLE[ int(length_string[:-1]) ]
             next_length = LENGTH_TABLE[ int(length_string[:-1])*2 ]
@@ -130,16 +137,16 @@ def mml2commands(text, subroutine=False, is_drums=False):
                 if rendered_length > 16:
                     _ = divmod(rendered_length, 16)
                     for i in range(_[0]):
-                        add_raw_note(note, (now_length[0], 16))
-                    add_raw_note(note, (now_length[0], _[1]))
+                        add_raw_note(note, (now_length[0], 16), drums=drums)
+                    add_raw_note(note, (now_length[0], _[1]), drums=drums)
                 else:
-                    add_raw_note(note, (now_length[0], rendered_length))
+                    add_raw_note(note, (now_length[0], rendered_length), drums=drums)
             else: # different
                 # i'm not gonna bother with maths for now
-                add_raw_note(note, now_length)
-                add_raw_note(note, next_length)
+                add_raw_note(note, now_length, drums=drums)
+                add_raw_note(note, next_length, drums=drums)
         else:
-            add_raw_note(note, LENGTH_TABLE[ int(length_string) ])
+            add_raw_note(note, LENGTH_TABLE[ int(length_string) ], drums=drums)
     
     def add_comment(text):
         command_bin.append(
@@ -175,11 +182,12 @@ def mml2commands(text, subroutine=False, is_drums=False):
     
     commands = COMMANDS_RE.finditer(text)
     
-    if not subroutine:
-        if not is_drums:
-            # initialize track
+    if not(subroutine):
+        if not(is_drums):
             add_octave(state["octave"])
             add_asm("note_type %d, 12, 0" % LENGTH_TABLE[ int(state["length"]) ][0] )
+        else:
+            add_asm("drum_speed %d" % LENGTH_TABLE[ int(state["length"]) ][0] )
     
     for entry in commands:
         mml_command = entry.group().lower()
@@ -190,7 +198,7 @@ def mml2commands(text, subroutine=False, is_drums=False):
         match first_chara:
             case "[":
                 add_loop_label()
-                for inner_command in mml2commands(entry.group(1), subroutine=True, is_drums=is_drums):
+                for inner_command in mml2commands(entry.group(1), subroutine=True, is_drums=is_drums, state=state, start_channel=False):
                     command_bin.append(inner_command)
                 add_loop_command(
                     int(entry.group(2)), num_loop_points-1
@@ -256,9 +264,9 @@ def mml2commands(text, subroutine=False, is_drums=False):
                         add_octave(state["octave"])
                 
                 if entry.group(6) is not None:
-                    add_note(cur_note, entry.group(6))
+                    add_note(cur_note, entry.group(6), drums=is_drums)
                 else:
-                    add_note(cur_note, state["length"])
+                    add_note(cur_note, state["length"], drums=is_drums)
                 
                 if delta_octave:
                     if not is_drums:
@@ -303,15 +311,19 @@ def commands2asm(commands):
                 asm_bin.append("\ttempo %d" % command[1])
             case "O":
                 asm_bin.append("\toctave %d" % command[1])
-            case "N":
-                if command[1][1][0] != current_note_type:
-                    current_note_type = command[1][1][0]
-                    asm_bin.append("\tnote_type %d, %d, %d" % (current_note_type, *envelope_type))
-                
-                if envelope_changed:
-                    asm_bin.append("\tnote_type %d, %d, %d" % (current_note_type, *envelope_type))
-                    envelope_changed = False
-                
+            case "N"|"ND":
+                if len(command[0]) < 2:
+                    if command[1][1][0] != current_note_type:
+                        current_note_type = command[1][1][0]
+                        asm_bin.append("\tnote_type %d, %d, %d" % (current_note_type, *envelope_type))
+                    
+                    if envelope_changed:
+                        asm_bin.append("\tnote_type %d, %d, %d" % (current_note_type, *envelope_type))
+                        envelope_changed = False
+                else:
+                    if command[1][1][0] != current_note_type:
+                        current_note_type = command[1][1][0]
+                        asm_bin.append("\tdrum_speed %d" % current_note_type)
                 if command[1][0] == "__":
                     asm_bin.append("\trest %d" % command[1][1][1])
                 else:
@@ -351,8 +363,11 @@ with open(sys.argv[1], "r") as mml_file:
     
     mml = mml_file.read()
     
+    # get rid of all comments
+    mml = re.sub(r"//[^\n]+$|/\*.+?\*/", "", mml, 0, re.DOTALL | re.IGNORECASE | re.MULTILINE)
+    
     # preprocess mml
-    get_preprocessors = re.finditer(r"#(title|author)\s+(.+)$", mml, re.MULTILINE | re.IGNORECASE)
+    get_preprocessors = re.finditer(r"#(title|author|#)\s+(.+)$", mml, re.MULTILINE | re.IGNORECASE)
     
     for i in get_preprocessors:
         match i.group(1):
@@ -360,11 +375,13 @@ with open(sys.argv[1], "r") as mml_file:
                 song_name = i.group(2)
             case "author":
                 author_name = i.group(2)
+            case "#":
+                pass # this is a comment
     
     print("; %s" % song_name)
     if author_name:
         print("; by %s" % author_name)
-    print("; generated by mml2pret.py on %s\n" % datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+    print("\n; generated by mml2pret.py on %s\n" % datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
     
     song_name = song_name.title().replace(" ","")
     channels = {}
@@ -377,7 +394,6 @@ with open(sys.argv[1], "r") as mml_file:
     
     for i in channels:
         # get rid of all the whitespace
-        channels[i] = re.sub(r"//[^\n]+$|/\*.+?\*/", "", channels[i], 0, re.DOTALL | re.IGNORECASE | re.MULTILINE)
         channels[i] = re.sub(r"\n|^\s*|\s*$", "", channels[i], 0, re.DOTALL | re.IGNORECASE | re.MULTILINE)
         pass
     
