@@ -318,7 +318,7 @@ A { // first chanel
 
 B { // lead instrument
 	l8 @duty(3)
-	@vib(8 4 3)@
+	@vib(8 4 3)
 @l
   gabc
 }
