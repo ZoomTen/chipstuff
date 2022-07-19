@@ -7,8 +7,8 @@ bpmify = lambda timebase, speedSum, hz: (120.0 * hz) / (timebase * 4 * speedSum)
 to_tempo = lambda tempo: int(19296 / tempo)
 
 song_const_name = None
-current_wave_id = None
-current_volume  = None
+current_wave_id = 0
+current_volume  = 15
 
 def fetch_instrument_nos_in_pattern(pattern):
 	"""

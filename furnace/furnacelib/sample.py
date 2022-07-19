@@ -1,7 +1,7 @@
 import zlib
 import io
 from .util import read_as, read_as_single, write_as
-from .types import FurnaceChip, FurnaceNote, FurnaceInstrumentType, FurnaceMacroItem
+from .types import FurnaceChip, FurnaceNote, FurnaceInstrumentType, FurnaceMacroItem, FurnaceSampleType
 
 class FurnaceSample:
     # does it even have a separate file format??
