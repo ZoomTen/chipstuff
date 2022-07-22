@@ -30,8 +30,14 @@ class FurnaceSample:
         self.__read_header_and_sample(stream)
 
     def __read_header_and_sample(self, stream):
-        if stream.read(4) != b"SMPL":
-            raise Exception("Not a wavetable?")
+		header = stream.read(4)
+		
+		if header == b"SMPL":
+			pass
+		elif header == b"SMP2": # version 102+
+			pass
+		else:
+        	raise Exception("Not a sample?")
         stream.read(4) # reserved
 
         self.info["name"] = read_as("string", stream)
