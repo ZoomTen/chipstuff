@@ -4,6 +4,8 @@ from copy import deepcopy
 from .util import read_as, read_as_single, write_as
 from .types import FurnaceChip, FurnaceNote, FurnaceInstrumentType, FurnaceMacroItem
 
+# Older Furnace instrument type (< 127)
+ 
 class FurnaceInstrument:
     def __init__(self, make_new=False, file_name=None, stream=None):
         self.data = {}

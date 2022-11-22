@@ -10,6 +10,8 @@ song_const_name = None
 current_wave_id = 0
 current_volume  = 15
 
+module_version = None
+
 def fetch_instrument_nos_in_pattern(pattern):
 	"""
 	Fetches the set of used instrument IDs.
@@ -122,7 +124,22 @@ def pattern2asm(pattern, instruments):
 				pass
 			else:
 				# calculate note_type based on the current instrument and vol.
-				current_instrument = instruments[current_instrument_id].data["gameboy"]
+				current_instrument = instruments[current_instrument_id]
+				if module_version < 127:
+					current_instrument = current_instrument.data["gameboy"]
+					print(current_instrument)
+				else:
+					gb_inst = list(filter(lambda x: x.code=="GB", current_instrument.data))
+					if len(gb_inst) > 1:
+						raise Exception("Conflicting Game Boy instrument data on instrument '%s'" % current_instrument.name)
+					elif len(gb_inst) < 1:
+						raise Exception("No Game Boy instrument data found on instrument '%s'" % current_instrument.name)
+					# fake the older format
+					_data = gb_inst[0].interpret_data()
+					current_instrument = {
+						"soundLength": _data["soundLength"]
+					}
+					current_instrument.update(_data["envelope"])
 				if not current_volume:
 					current_volume = 0x0f
 				calculated_volume = int(
@@ -177,6 +194,8 @@ if __name__ == "__main__":
 	song_name = module.meta["name"].title().replace(" ","")
 	asm_name  = "%s.asm" % module.meta["name"].lower().replace(" ","_")
 	song_const_name = module.meta["name"].upper().replace(" ", "_")
+	
+	module_version = module.meta["version"]
 
 	patterns = {
 		0: filter(lambda x: x.channel == 0, module.patterns),

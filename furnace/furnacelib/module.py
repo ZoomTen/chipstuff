@@ -8,6 +8,7 @@ import io
 from .util import read_as, read_as_single, write_as, truthy_to_boolbyte
 from .types import FurnaceChip, FurnaceNote, FurnaceInstrumentType, FurnaceMacroItem
 from .instrument import FurnaceInstrument
+from .instrument_dx import FurnaceInstrumentDX
 from .wavetable import FurnaceWavetable
 from .sample import FurnaceSample
 from .pattern import FurnacePattern
@@ -499,9 +500,18 @@ class FurnaceModule:
     def __read_instruments(self, stream):
         for i in self.__loc_instruments:
             stream.seek(i)
-            self.instruments.append(
-                FurnaceInstrument(stream=stream)
-            )
+            inst_type = stream.read(4)
+            stream.seek(-4, 1)
+            if inst_type == b"INST":
+                self.instruments.append(
+                    FurnaceInstrument(stream=stream)
+                )
+            elif inst_type == b"INS2": # dev127+
+                self.instruments.append(
+                    FurnaceInstrumentDX(stream=stream)
+                )
+            else:
+                raise Exception("Unknown instrument type?")
 
     def __read_wavetables(self, stream):
         for i in self.__loc_waves:

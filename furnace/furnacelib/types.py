@@ -44,6 +44,56 @@ class FurnaceMacroItem(EnumShowNameOnly):
     LOOP    = 0
     RELEASE = 1
 
+class FurnaceMacroCode(EnumShowNameOnly):
+    """
+    Used in FurnaceInstrumentDX
+    """
+    VOL = 0
+    ARP = 1
+    DUTY = 2
+    WAVE = 3
+    PITCH = 4
+    EX1 = 5
+    EX2 = 6
+    EX3 = 7
+    ALG = 8
+    FB = 9
+    FMS = 10
+    AMS = 11
+    PAN_L = 12
+    PAN_R = 13
+    PHASE_RESET = 14
+    EX4 = 15
+    EX5 = 16
+    EX6 = 17
+    EX7 = 18
+    EX8 = 19
+    STOP = 255
+
+class FurnaceMacroType(EnumShowNameOnly):
+    """
+    Used in FurnaceInstrumentDX
+    """
+    SEQUENCE = 0
+    ADSR = 1
+    LFO = 2
+
+class FurnaceMacroSize(EnumShowNameOnly):
+    """
+    Used in FurnaceInstrumentDX
+    """
+    UINT8 = (0, 1)
+    INT8 = (1, 1)
+    INT16 = (2, 2)
+    INT32 = (3, 4)
+
+    def __new__(cls, id, num_bytes):
+        member = object.__new__(cls)
+
+        member._value_ = id
+        member.num_bytes = num_bytes
+        return member
+
 class FurnaceSampleType(EnumShowNameOnly):
     """
     Sample types used in Furnace
@@ -61,10 +111,10 @@ class FurnaceSampleType(EnumShowNameOnly):
 
 class FurnaceInstrumentType(EnumShowNameOnly):
     """
-    Instrument types currently available as of dev70
+    Instrument types currently available as of dev127
     """
     STANDARD    = 0
-    FM_4OP      = 1 # OPM, OPN
+    FM_4OP      = 1
     GB          = 2
     C64         = 3
     AMIGA       = 4
@@ -90,6 +140,24 @@ class FurnaceInstrumentType(EnumShowNameOnly):
     VERA        = 24
     X1010       = 25
     VRC6_SAW    = 26
+    ES5506      = 27
+    MULTIPCM    = 28
+    SNES        = 29
+    TSU         = 30
+    NAMCO_WSG   = 31
+    OPL_DRUMS   = 32
+    FM_OPM      = 33
+    NES         = 34
+    MSM6258     = 35
+    MSM6295     = 36
+    ADPCM_A     = 37
+    ADPCM_B     = 38
+    SEGAPCM     = 39
+    QSOUND      = 40
+    YMZ280B     = 41
+    RF5C68      = 42
+    MSM5232     = 43
+    T6W28       = 44
 
 class FurnaceChip(EnumShowNameOnly):
     """
@@ -165,9 +233,14 @@ class FurnaceChip(EnumShowNameOnly):
     SCC_PLUS          = (0xb4, 5)
     YM2610B_EX        = (0xde, 19)
     QSOUND            = (0xe0, 19)
+    PONG              = (0xfc, 1)
+    DUMMY             = (0xfd, 1)
+    RESERVED_1        = (0xfe, 1)
+    RESERVED_2        = (0xff, 1)
 
     def __new__(cls, id, channels):
         member = object.__new__(cls)
+
         member._value_ = id
         member.channels = channels
         return member
